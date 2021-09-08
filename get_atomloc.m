@@ -1,5 +1,10 @@
 function loc = get_atomloc(phase)
     % locations in the asymmetric unit cell, from http://som.web.cmu.edu/frames.html
+    % takes a phase as an input
+    % outputs loc, an n_atom x 3 vector where n_atom is the number of atoms in the unit cell
+    % unit cells in this are shifted to match 
+    % currently works for bcc, fcc, a15, sigma, c14, c15, and z. 
+    % needs to be modified to work wiith additional phases
     phase = lower(phase);
     asymcoords = containers.Map;
     asymcoords('bcc') = [0 0 0];
