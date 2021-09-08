@@ -31,11 +31,14 @@ function P = get_cross_section(ptcloud,pt,norm)
     P = [];
     n_tri = size(k,1); % number of triangles on convex hull
     for i_tri = 1:n_tri
-        % for each triangle, check first if triangle is coplanar with plane
-        % if yes, then store three points of triangle
-        % if no, check if plane intersects lines of triangle
-        % if yes, store intersection points as a row in P
-        % if no, go to next triangle
+        % for each triangle, it is a special case if any one of the corners is in the plane. 
+        % If all corners are in the plane, the triangle is coplanar. 
+        % If just two are in the plane, one of the lines is in the plane.
+        % If just one is in the plane, then that one point touches the plane.
+        % In each of these cases, the only point that needs to be added is the corner that touches
+        % If none, check if plane intersects lines of triangle
+        % If yes, store intersection points as a row in P
+        % If no, go to next triangle
         
         % get triangle coords/vectors
         pt_tri = ptcloud(k(i_tri,:),:);
@@ -44,56 +47,31 @@ function P = get_cross_section(ptcloud,pt,norm)
             pt_tri(2,:) - pt_tri(1,:)];
         norm_tri = cross(v(2,:),v(3,:)); 
         
-        % check if normal vectors of triangle and plane are independent
-        if rank([norm; norm_tri]) ~= 2 % rank of matrix made by vectors ~= number of vectors, linearly dependent
-            % they are dependent - plane/triangle are parallel! 
-            % now, check if triangle is actually in plane 
-            
-            if dot(norm, pt_tri(1,:)-pt) == 0 % plane equation! https://web.ma.utexas.edu/users/m408m/Display12-5-3.shtml
-                % triangle is in plane. add all points to list of points,
-                % and go to the next triangle
-                P = cat(1,P,pt_tri);
-                continue
-            else
-                % triangle is parallel but not in plane
-                % will never intersect plane
-                % skip this triangle
-                continue
+        % check if any points of triangle are in plane.
+        cornersIn = false;
+        for i_corn = 1:3
+            if round(dot(norm, pt_tri(i_corn,:)-pt),7) == 0
+                P = cat(1,P,pt_tri(i_corn,:));
+                cornersIn = true;
             end
         end
+        % if any were in, go to the next triangle
+        if cornersIn
+            continue
+        end
         
-        % if triangle not parallel to plane, then check if they intersect
+        % if no points are in the plane, then check if they intersect
         allidx = [1 2 3];
         for i_line = 1:length(allidx)
-            % note, it is possible for one edge to be parallel to plane
-            % while the whole triangle isn't
-            % check first if this line is parallel
-            idxs = allidx(allidx~=i_line); % all indexes except for the point not in the line. The point not in line is indexed i_line
-            if dot(norm, v(i_line,:)) == 0
-                % if line is parallel and triangle isn't, no other line is
-                % parallel. 
-                % thus, this line must be in the plane. check both end
-                % points to be sure.
-                if dot(norm, pt_tri(idxs(1),:)-pt) == 0 && dot(norm, pt_tri(idxs(2),:)-pt) == 0
-                    P = cat(1,P,pt_tri(idxs,:));
-                    break % if one line is in, and triangle isn't parallel, this is the only line in the plane
-                end
-            end
-            % okay, line isn't parallel. is a single point of hte triangle in the plane? 
-            if dot(norm, pt_tri(idxs(1),:)-pt) == 0
-                P = cat(1,P,pt_tri(idxs(1),:));
-                continue
-            elseif dot(norm, pt_tri(idxs(2),:)-pt) == 0
-                P = cat(1,P,pt_tri(idxs(2),:));
-                continue
-            end
-            
-            % okay, no. find intersection of line with plane
-            t = dot( norm, (pt-pt_tri(idxs(1),:)) )/dot( norm, v(i_line,:) ); % find the value of the scalar multiple of the line vector
-            pt_int = pt_tri(idxs(1),:)+t*v(i_line,:); % calculate the point of intersection using the identified scalar multiple
-            % now, check if this intersection of the line is actually on
-            % the component of the line in the triangle. It could be away
-            % from the triangle! 
+            % all indexes except for the point not in the line. The point not in line is indexed i_line
+            idxs = allidx(allidx~=i_line); 
+            % find intersection of line with plane.
+            % first, find the value of the scalar multiple of the line vector
+            t = dot( norm, (pt-pt_tri(idxs(1),:)) )/dot( norm, v(i_line,:) );
+            % calculate the point of intersection using the identified scalar multiple
+            pt_int = pt_tri(idxs(1),:)+t*v(i_line,:); 
+            % now, check if this intersection of the line is actually on the component of the line in the triangle. 
+            % It could be away from the triangle! 
             isIn = isInTri(pt_int,pt_tri);
             if isIn
                 P = cat(1,P, pt_int);
