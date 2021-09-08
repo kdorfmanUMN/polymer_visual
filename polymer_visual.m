@@ -1,4 +1,4 @@
-function polymer_visual(filename)
+function polymer_visual(phase,filename)
 
 close all
 
@@ -208,7 +208,7 @@ end
 
 x = zeros(grid);
 y = zeros(grid);
-z = zeros(grid);
+triP = zeros(grid);
 R = zeros([grid n_mnr]);
 counter = 0;
 
@@ -218,7 +218,7 @@ for iz=1:grid(3)+1
             counter = counter + 1;
             x(ix,iy,iz) = cell_d(1) * (ix-1)/grid(1) + (cos(angle(3)))*( cell_d(2) * (iy-1)/grid(2)) + ((iz-1)/grid(3))*(cos(angle(1))*cell_d(3));
             y(ix,iy,iz) = cell_d(2) * (iy-1)/grid(2) * sin(angle(3)) + ((iz-1)/grid(3))*cos(angle(2))*cell_d(3);
-            z(ix,iy,iz) = cell_d(3) * (iz-1)/grid(3) * sin(angle(1)) * sin(angle(2));
+            triP(ix,iy,iz) = cell_d(3) * (iz-1)/grid(3) * sin(angle(1)) * sin(angle(2));
             for in = 1:n_mnr
                 if ix == grid(1)+1
                     R(grid(1)+1,:,:,in) = R(1,:,:,in);
@@ -594,10 +594,10 @@ for in = mono_disp
     figure(in)
     title(titles(in))
     data = R(:,:,:,in);
-    patch(isosurface(x,y,z,data,isovalue(in)), ...
+    patch(isosurface(x,y,triP,data,isovalue(in)), ...
           'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none',...
           'FaceAlpha',opacity(in,1));
-    patch(isocaps(x,y,z,data,isovalue(in)), ...
+    patch(isocaps(x,y,triP,data,isovalue(in)), ...
           'FaceColor','interp','EdgeColor','none',...
           'FaceAlpha',opacity(in,2));
     colormap(cell2mat(map_store(map_choice(in))))
@@ -626,7 +626,7 @@ for in = mono_disp
         %[s1,s2,s3] = ind2sub([plot_grid n_mnr],find(abs((R(:,:,:,in) - isovalue(in)))<0.001,1));
         text(x(grid(1)+1,1,round(grid(3)/2)), ...
              y(grid(1)+1,1,round(grid(3)/2)), ...
-             z(grid(1)+1,1,round(grid(3)/in)),...
+             triP(grid(1)+1,1,round(grid(3)/in)),...
              text_disp,'color',outcolor(in,:)) % Setting the location for the label
     end
     
@@ -657,7 +657,7 @@ for in = mono_disp
                         counter = counter +1;
                         coord_set(counter,1) = x(ix,iy,iz) ;
                         coord_set(counter,2) = y(ix,iy,iz) ;
-                        coord_set(counter,3) = z(ix,iy,iz) ;
+                        coord_set(counter,3) = triP(ix,iy,iz) ;
                     end
                 end
             end
@@ -671,16 +671,16 @@ for in = mono_disp
                         counter = counter +1;
                         x(ix,iy,iz) = coord_set(counter,1) ;
                         y(ix,iy,iz) = coord_set(counter,2) ;
-                        z(ix,iy,iz) = coord_set(counter,3) ;
+                        triP(ix,iy,iz) = coord_set(counter,3) ;
                     end
                 end
             end
             
             figure(in)
             data = R(:,:,:,in);
-            p1 = patch(isosurface(x,y,z,data,isovalue(in)), ...
+            p1 = patch(isosurface(x,y,triP,data,isovalue(in)), ...
                 'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none','FaceAlpha',opacity(in,1));
-            p2 = patch(isocaps(x,y,z,data,isovalue(in)), ...
+            p2 = patch(isocaps(x,y,triP,data,isovalue(in)), ...
                 'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
             
         end
@@ -773,9 +773,9 @@ if ~isempty(comp_disp)
     for in = comp_disp
         D(:,:,:,in) = R(:,:,:,in) +in -1;
         data = (D(:,:,:,in));
-        p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
+        p1 = patch(isosurface(x,y,triP,data,newisovalue(in)), ...
             'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none','FaceAlpha',opacity(in,1));
-        p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
+        p2 = patch(isocaps(x,y,triP,data,newisovalue(in)), ...
             'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
         
         if dim == 3
@@ -814,7 +814,7 @@ if ~isempty(comp_disp)
                             counter = counter +1;
                             coord_set(counter,1) = x(ix,iy,iz) ;
                             coord_set(counter,2) = y(ix,iy,iz) ;
-                            coord_set(counter,3) = z(ix,iy,iz) ;
+                            coord_set(counter,3) = triP(ix,iy,iz) ;
                         end
                     end
                 end
@@ -828,15 +828,15 @@ if ~isempty(comp_disp)
                             counter = counter +1;
                             x(ix,iy,iz) = coord_set(counter,1) ;
                             y(ix,iy,iz) = coord_set(counter,2) ;
-                            z(ix,iy,iz) = coord_set(counter,3) ;
+                            triP(ix,iy,iz) = coord_set(counter,3) ;
                         end
                     end
                 end
                 
                 data = D(:,:,:,in);
-                p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
+                p1 = patch(isosurface(x,y,triP,data,newisovalue(in)), ...
                     'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none','FaceAlpha',opacity(in,1));
-                p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
+                p2 = patch(isocaps(x,y,triP,data,newisovalue(in)), ...
                     'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
                 set(gcf,'Renderer','zbuffer')
             end
@@ -845,7 +845,7 @@ if ~isempty(comp_disp)
         if isovalue(in) >= max(face_data(:,in))
             cell1 = {['\fontsize{14}\Phi' '_' mono_label(in) '='], num2str(round(isovalue(in),2))}; % Creating the label for the isovalue
             text_disp = {strjoin(cell1)};
-            text( x(grid(1)+1,1,round(grid(3)/2)), y(grid(1)+1,1,round(grid(3)/2)), z(grid(1)+1,1,round(grid(3)/in)),[text_disp],'color',outcolor(in,:)) % Setting the location and color for the label
+            text( x(grid(1)+1,1,round(grid(3)/2)), y(grid(1)+1,1,round(grid(3)/2)), triP(grid(1)+1,1,round(grid(3)/in)),[text_disp],'color',outcolor(in,:)) % Setting the location and color for the label
         end
         
     end
@@ -1048,7 +1048,7 @@ if ~isempty(drawscatter)
                     for ix=1:grid(1)
                         x_s(ix,iy,iz) = x(ix,iy,iz)/cell_d(1);
                         y_s(ix,iy,iz) = y(ix,iy,iz)/cell_d(2);
-                        z_s(ix,iy,iz) = z(ix,iy,iz)/cell_d(3);
+                        z_s(ix,iy,iz) = triP(ix,iy,iz)/cell_d(3);
                         F_sum = F_sum + R(ix,iy,iz,in)*exp(2*1i*pi*((h*x_s(ix,iy,iz)) + ...
                                 (k*y_s(ix,iy,iz))+(l*z_s(ix,iy,iz))));
                         
@@ -1292,6 +1292,8 @@ if ~isempty(contourvecs)
 %     disp(xvals_to_delete)
 %     disp(yvals_to_delete)
     
+
+    
     % Make contour plot
     cblabel2 = zeros(n_mnr,25); 
     cblabel3 = zeros(n_mnr,6);
@@ -1320,22 +1322,89 @@ if ~isempty(contourvecs)
     end
     set(gcf,'position',[100 100 1200 600]) % 1625 is good on long axis for hexagonal plots
     
-    %title1 = strcat('Density Variation Along ','[',num2str(userinput),']');
-    %title(title1)
-    %xlabel('\fontsize{14}r/r\fontsize{14}_m_a_x')
-    %ylabel('\fontsize{14}\Phi\fontsize{13}(r)')
-    %ylim([0 1])
-end
+    % Find voronoi cells and boundaries for this crystal
+    % structure (all in terms of miller indices!)
+    [v,c] = get_voronoi(cell_d,angle,phase);
+    n_voro = length(c);
+    % find lines of voronoi cells intersecting with the plotting plane
+    hold on
+    for i_vor = 1:n_voro
+        ptcloud = v(c{i_vor},:); % corners of voronoi cell
 
-%out = isovalue
-%figure(n_mnr+1)
-%rotate3d(ax(n_mnr+1));
-%print([filename '_all'],'-djpeg')
+        if any(ptcloud==Inf)
+            continue
+        end
+        P = get_cross_section(ptcloud,startloc,cross(xvec,yvec));
+        if isempty(P)
+            continue
+        end
+        % find linear combination of plane vectors required to get to these
+        % points
+        rescaled = ([xvec; yvec]'\P')';
+        k = convhull(rescaled);
+        plot(rescaled(k,1),rescaled(k,2),'k-','linewidth',2)
+    end
+    xlim([0,1])
+    ylim([0,1])
+    
+end
 
 toc
 end
 
 % Subfunctions
+
+function [v,c] = get_voronoi(cell_d,angles,phase)
+    % get number of atoms 
+    atomidx = get_atomloc(phase);
+    n_atoms = size(atomidx,1);
+    % generate large number of neighbours
+    neighbours = gen_neighbours(cell_d,angles,phase);
+    % find voronoi cells for all points
+    [v,c] = voronoin(neighbours); % v is 
+    % reduce to only the cells relevant to the unit cell points, not their
+    % neighbours
+    %c = c(1:n_atoms);
+end
+
+function neighbours = gen_neighbours(cell_d,angles,phase)
+    basis = get_basis(cell_d,angles);
+    atomidx = get_atomloc(phase);
+    neighbour_idx = [1,0,0;0,1,0;0,0,1;1,1,0;1,-1,0;1,0,1;1,0,-1;0,1,1;0,1,-1;1,1,1;-1,1,1;1,-1,1;1,1,-1];
+    
+    neighboursTemp = atomidx;
+    for i = 1:size(neighbour_idx,1)
+        neighboursTemp = cat(1,neighboursTemp, atomidx + neighbour_idx(i,:));
+        neighboursTemp = cat(1,neighboursTemp, atomidx - neighbour_idx(i,:));    
+    end
+    neighbours = neighboursTemp; % if you just want to return the idx
+    %neighbours = round(((basis')*(neighboursTemp'))',7);
+    
+end
+
+function basis = get_basis(cell_d,angles)
+    
+    % construct basis vectors in cartesian coordinates based on lattice
+    % parameters and angles. Generalized for triclinic.
+    
+    % by convention, align the first axis, with length a, with the x axis 
+    
+    a = cell_d(1);
+    b = cell_d(2);
+    c = cell_d(3);
+    alpha = angles(1);
+    beta = angles(2);
+    gamma = angles(3);
+
+    basis(1,1) = a;
+    basis(2,1) = b * cos(gamma);
+    basis(2,2) = b * sin(gamma);
+    basis(3,1) = c * cos(beta);
+    basis(3,2) = c * (cos(alpha) - cos(beta)*cos(gamma))/sin(gamma);
+    basis(3,3) = c * sqrt(1 - cos(beta)^2 - ((cos(alpha) - cos(beta)*cos(gamma))/sin(gamma))^2);
+    basis = round(basis,8);
+    
+end
 
 function draw_lattice(cell_d,angle,thick,box_clr)
 %% Drawing the Unit Cell Outline
