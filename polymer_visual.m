@@ -2,44 +2,9 @@ function polymer_visual(phase,filename)
 
 close all
 
-%% Reading the File
+%% Read in the rgrid file
 tic
-
-tmp = fopen(filename);
-C = textscan(tmp,'%s','delimiter', '\n');
-C=C{1};
-fclose(tmp); clear tmp;
-
-ic = 0;
-ndata = 0;
-required_rep = 5;
-
-
-while ndata <= required_rep
-    ic = ic +1;
-    
-    if round(sum (sscanf(C{ic},'%f')),2)== 1.00 && round(sum (sscanf(C{ic+1},'%f')),2)== 1.00
-        ndata = ndata+1;
-    else
-        ndata = 0;
-    end
-    
-    if strcmp(strrep(char(C(ic)),' ', ''),'dim')==1
-        dim = str2double(C{ic+1});          % Reads the grid dimensions
-    elseif strcmp(strrep(char(C(ic)),' ', ''),'crystal_system')==1
-        type = strrep(C(ic+1), '''', '');   % Reads the system type
-    elseif strcmp(strrep(char(C(ic)),' ', ''),'cell_param')==1
-        param = sscanf(C{ic+1},'%f')';            % Reads the cell parameters
-    elseif strcmp(strrep(char(C(ic)),' ', ''),'N_monomer')==1
-        n_mnr = str2double(C{ic+1});        % Reads the number of monomers
-    elseif strcmp(strrep(char(C(ic)),' ', ''),'ngrid')==1
-        grid = sscanf(C{ic+1},'%f')';            % Reads the grid size
-    end
-end
-
-end_info = 15;%ic - required_rep - 1;                % Records the row in which the supplementary information ends
-start_row = 16;%ic - required_rep;                  % Records the row in which the volume fractions start
-
+[R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(filename);
 
 %% Default Inputs
 mono_disp = zeros(1,n_mnr);
@@ -140,113 +105,11 @@ else
 end
 %linedraw=0; %(Set to 0 if you do not want to view the diagnostic plot)
 
-%% Reading the Grid Points From the File
+%% Computing the Isovalue
 
-A = zeros(length(C) - end_info,n_mnr);
-
-for i =start_row:length(C)
-    A(i - end_info,:) = sscanf(C{i},'%f')';
-end
-
-%% Separating Grid Dimensions and Angles
-
-if strcmp(type,'hexagonal') == 1
-    angle = [pi/2 pi/2 (2*pi)/3];
-    cell_d = param;
-elseif strcmp(type,'cubic') == 1
-    angle = [pi/2 pi/2 pi/2];
-    cell_d = param;
-elseif strcmp(type,'tetragonal') == 1
-    angle = [pi/2 pi/2 pi/2];
-    cell_d = param;
-elseif strcmp(type,'orthorhombic') == 1
-    angle = [pi/2 pi/2 pi/2];
-    cell_d = param;
-elseif strcmp(type,'triclinic') == 1
-    angle = [param(4) param(5) param(6)];
-    cell_d = [param(1) param(2) param(3)];
-elseif strcmp(type,'monoclinic') == 1
-    angle = [pi/2 param(4) pi/2];
-    cell_d = [param(1) param(2) param(3)];
-elseif strcmp(type,'trigonal') == 1
-    angle = [param(2) param(2) param(2)];
-    cell_d = param(1);
-elseif strcmp(type,'lamellar') == 1
-    angle = [pi/2 pi/2 pi/2];
-    cell_d = param;
-else
-    angle = [pi/2 pi/2 pi/2];
-    cell_d = param;
-end
-
-%% Calculating the Cell Dimensions
-
-if(length(cell_d)==1)
-    new_cell = ones(1,3)*cell_d;          % Cubic crystals
-elseif(length(param)==2)
-    new_cell(1:2) = cell_d(1);            % Tetragonal crystals
-    new_cell(3)   = cell_d(2);
-else
-    new_cell = cell_d;                    % Orthorhombic crystals
-end
-
-clear cell_d; cell_d = new_cell;
-
-if(length(grid)==1)
-    grid(2) = grid(1);                   % 3D grid for 1D crystals
-    grid(3) = grid(1);
-elseif(length(grid)==2)
-    grid(3) = grid(1);                  % 3D grid for 2D crystals
-end
-
-plot_grid = zeros(1,3);
 for ig = 1:3
     plot_grid(ig) = grid(ig)+1;
 end
-
-%% Formulating the volume fraction in 4D  arrays for 3D visualization.
-
-x = zeros(grid);
-y = zeros(grid);
-triP = zeros(grid);
-R = zeros([grid n_mnr]);
-counter = 0;
-
-for iz=1:grid(3)+1
-    for iy=1:grid(2)+1
-        for ix=1:grid(1)+1
-            counter = counter + 1;
-            x(ix,iy,iz) = cell_d(1) * (ix-1)/grid(1) + (cos(angle(3)))*( cell_d(2) * (iy-1)/grid(2)) + ((iz-1)/grid(3))*(cos(angle(1))*cell_d(3));
-            y(ix,iy,iz) = cell_d(2) * (iy-1)/grid(2) * sin(angle(3)) + ((iz-1)/grid(3))*cos(angle(2))*cell_d(3);
-            triP(ix,iy,iz) = cell_d(3) * (iz-1)/grid(3) * sin(angle(1)) * sin(angle(2));
-            for in = 1:n_mnr
-                if ix == grid(1)+1
-                    R(grid(1)+1,:,:,in) = R(1,:,:,in);
-                    counter = counter - (1/n_mnr);
-                elseif iy == grid(2) + 1
-                    R(:,grid(2)+1,:,in) = R(:,1,:,in);
-                    counter = counter - (1/n_mnr);
-                elseif iz == grid(3) + 1
-                    R(:,:,grid(3)+1,in) = R(:,:,1,in);
-                    counter = counter - (1/n_mnr);
-                else
-                    R(ix,iy,iz,in) = A(round(counter),in);
-                end
-            end
-        end
-        if(dim==1)
-            counter = 0;
-        end
-    end
-    if(dim==2)
-        counter=0;
-    end
-end
-
-
-%% Computing the Isovalue
-
-% "Maybe it's an illusion? I'm not sure sometimes. I've given it everything. It just takes..."
 
 if strcmp(isovalue,'auto')==1
     
@@ -333,9 +196,7 @@ if strcmp(isovalue,'auto')==1
     end
     
 % Finding intersections
-    
-    % "Haunted, voices, craving, someone to run to..."
-    
+        
     clear x_inter inter_point intervalue
     
     n_intervalue  = 0;
@@ -395,9 +256,7 @@ if strcmp(isovalue,'auto')==1
     end
     
 % Closing any gaps
-    
-    % "I need to be closer, have closure; get closer to You..."
-        
+            
     if gap_close == 1
         
         if n_mnr ==3 && range(isovalue_s) > 1e-4
@@ -501,9 +360,7 @@ if strcmp(isovalue,'auto')==1
     end
     
 % Converting the isovalue
-   
-    % "Let's take it back. Back to where it was. It can't be that far..."
-    
+       
     for in=1:n_mnr
         isovalue(in) = (isovalue_s(in)*l_length(in))/weight(in) +polmin(in);
     end
