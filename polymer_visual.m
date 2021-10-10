@@ -642,7 +642,7 @@ function polymer_visual(phase,filename)
             axis vis3d;                     %Freezes aspect ratio (allowing rotation)
             %axis tight;                     %Snaps the axis to the data set
 
-            if strcmp(type,'hexagonal') == 1
+            if strcmp(lattype,'hexagonal') == 1
                 size_grid = (grid(1)+1)*(grid(2)+1)*(grid(3)+1);
                 coord_set = zeros(size_grid,3);
 
@@ -1059,8 +1059,8 @@ function polymer_visual(phase,filename)
 
         % Find angle between xvec and yvec by making two new vectors, xvec_orth
         % and yvec_orth that are defined by orthogonal basis vectors
-        if or(strcmp(type,'tetragonal') == 1, or(strcmp(type,'orthorhombic') == 1,...
-              strcmp(type,'cubic') == 1))
+        if or(strcmp(lattype,'tetragonal') == 1, or(strcmp(lattype,'orthorhombic') == 1,...
+              strcmp(lattype,'cubic') == 1))
             xvec_orth = xvec;
             yvec_orth = yvec;
         else
