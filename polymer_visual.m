@@ -485,7 +485,7 @@ function polymer_visual(phase,filename)
                  text_disp,'color',outcolor(in,:)) % Setting the location for the label
         end
 
-        if strcmp(type,'hexagonal') == 1
+        if strcmp(lattype,'hexagonal') == 1
 
             % Draw unit cell outlines for the second and third unit cells:
             angle_2 = [pi/2 pi/2 (-2*pi)/3];
