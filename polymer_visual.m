@@ -449,10 +449,10 @@ function polymer_visual(phase,filename)
         figure(in)
         title(titles(in))
         data = R(:,:,:,in);
-        patch(isosurface(x,y,triP,data,isovalue(in)), ...
+        patch(isosurface(x,y,z,data,isovalue(in)), ...
               'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none',...
               'FaceAlpha',opacity(in,1));
-        patch(isocaps(x,y,triP,data,isovalue(in)), ...
+        patch(isocaps(x,y,z,data,isovalue(in)), ...
               'FaceColor','interp','EdgeColor','none',...
               'FaceAlpha',opacity(in,2));
         colormap(cell2mat(map_store(map_choice(in))))
@@ -481,7 +481,7 @@ function polymer_visual(phase,filename)
             %[s1,s2,s3] = ind2sub([plot_grid n_mnr],find(abs((R(:,:,:,in) - isovalue(in)))<0.001,1));
             text(x(grid(1)+1,1,round(grid(3)/2)), ...
                  y(grid(1)+1,1,round(grid(3)/2)), ...
-                 triP(grid(1)+1,1,round(grid(3)/in)),...
+                 z(grid(1)+1,1,round(grid(3)/in)),...
                  text_disp,'color',outcolor(in,:)) % Setting the location for the label
         end
 
@@ -512,7 +512,7 @@ function polymer_visual(phase,filename)
                             counter = counter +1;
                             coord_set(counter,1) = x(ix,iy,iz) ;
                             coord_set(counter,2) = y(ix,iy,iz) ;
-                            coord_set(counter,3) = triP(ix,iy,iz) ;
+                            coord_set(counter,3) = z(ix,iy,iz) ;
                         end
                     end
                 end
@@ -526,16 +526,16 @@ function polymer_visual(phase,filename)
                             counter = counter +1;
                             x(ix,iy,iz) = coord_set(counter,1) ;
                             y(ix,iy,iz) = coord_set(counter,2) ;
-                            triP(ix,iy,iz) = coord_set(counter,3) ;
+                            z(ix,iy,iz) = coord_set(counter,3) ;
                         end
                     end
                 end
 
                 figure(in)
                 data = R(:,:,:,in);
-                p1 = patch(isosurface(x,y,triP,data,isovalue(in)), ...
+                p1 = patch(isosurface(x,y,z,data,isovalue(in)), ...
                     'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none','FaceAlpha',opacity(in,1));
-                p2 = patch(isocaps(x,y,triP,data,isovalue(in)), ...
+                p2 = patch(isocaps(x,y,z,data,isovalue(in)), ...
                     'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
 
             end
@@ -628,9 +628,9 @@ function polymer_visual(phase,filename)
         for in = comp_disp
             D(:,:,:,in) = R(:,:,:,in) +in -1;
             data = (D(:,:,:,in));
-            p1 = patch(isosurface(x,y,triP,data,newisovalue(in)), ...
+            p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
                 'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none','FaceAlpha',opacity(in,1));
-            p2 = patch(isocaps(x,y,triP,data,newisovalue(in)), ...
+            p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
                 'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
 
             if dim == 3
@@ -669,7 +669,7 @@ function polymer_visual(phase,filename)
                                 counter = counter +1;
                                 coord_set(counter,1) = x(ix,iy,iz) ;
                                 coord_set(counter,2) = y(ix,iy,iz) ;
-                                coord_set(counter,3) = triP(ix,iy,iz) ;
+                                coord_set(counter,3) = z(ix,iy,iz) ;
                             end
                         end
                     end
@@ -683,15 +683,15 @@ function polymer_visual(phase,filename)
                                 counter = counter +1;
                                 x(ix,iy,iz) = coord_set(counter,1) ;
                                 y(ix,iy,iz) = coord_set(counter,2) ;
-                                triP(ix,iy,iz) = coord_set(counter,3) ;
+                                z(ix,iy,iz) = coord_set(counter,3) ;
                             end
                         end
                     end
 
                     data = D(:,:,:,in);
-                    p1 = patch(isosurface(x,y,triP,data,newisovalue(in)), ...
+                    p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
                         'FaceColor',outcolor(map_choice(in),:),'EdgeColor','none','FaceAlpha',opacity(in,1));
-                    p2 = patch(isocaps(x,y,triP,data,newisovalue(in)), ...
+                    p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
                         'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
                     set(gcf,'Renderer','zbuffer')
                 end
@@ -700,7 +700,7 @@ function polymer_visual(phase,filename)
             if isovalue(in) >= max(face_data(:,in))
                 cell1 = {['\fontsize{14}\Phi' '_' mono_label(in) '='], num2str(round(isovalue(in),2))}; % Creating the label for the isovalue
                 text_disp = {strjoin(cell1)};
-                text( x(grid(1)+1,1,round(grid(3)/2)), y(grid(1)+1,1,round(grid(3)/2)), triP(grid(1)+1,1,round(grid(3)/in)),[text_disp],'color',outcolor(in,:)) % Setting the location and color for the label
+                text( x(grid(1)+1,1,round(grid(3)/2)), y(grid(1)+1,1,round(grid(3)/2)), z(grid(1)+1,1,round(grid(3)/in)),[text_disp],'color',outcolor(in,:)) % Setting the location and color for the label
             end
 
         end
@@ -903,7 +903,7 @@ function polymer_visual(phase,filename)
                         for ix=1:grid(1)
                             x_s(ix,iy,iz) = x(ix,iy,iz)/cell_d(1);
                             y_s(ix,iy,iz) = y(ix,iy,iz)/cell_d(2);
-                            z_s(ix,iy,iz) = triP(ix,iy,iz)/cell_d(3);
+                            z_s(ix,iy,iz) = z(ix,iy,iz)/cell_d(3);
                             F_sum = F_sum + R(ix,iy,iz,in)*exp(2*1i*pi*((h*x_s(ix,iy,iz)) + ...
                                     (k*y_s(ix,iy,iz))+(l*z_s(ix,iy,iz))));
 
