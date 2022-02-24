@@ -10,7 +10,8 @@ function polymer_visual(filename)
     tic
     [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(filename);
     basis = get_basis(cell_d,angle);
-    
+    % Default Inputs
+    mono_disp = 1:n_mnr;
     comp_disp = 1:n_mnr;
     
     % Other Inputs
@@ -25,7 +26,6 @@ function polymer_visual(filename)
 
     opacity = ones(n_mnr,2); %Block Opacity
     %opacity = [1,1;0,0.65;1,1];
-    
     thick = 1; %Box Thickness Value
     box_clr = [0.5 0.5 0.5]; %Box color
 
@@ -60,9 +60,9 @@ function polymer_visual(filename)
     
     % Draw individual density profiles for each monomer species specified
     % in mono_disp:
-    individual_profiles(R,x,y,z,"isovalue",isovalue,...
-                        "mono_label",mono_label,"opacity",opacity,...
-                        "map",map_store)
+    for in = mono_disp
+        individual_profiles(R(:,:,:,in),x,y,z,mono_label(in),map_store)
+    end
 
     % Drawing the Composite Density Profile
     

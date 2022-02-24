@@ -1,6 +1,11 @@
 % Drawing the Unit Cell Outline:
 
-% This function takes basis, which contains lattice basis vectors, 
+% This function will draw the edges of a 2d or 3d box on the current axis. 
+
+% The function takes basis, the rows of which are the lattice basis 
+% vectors, and thick and box_clr, which are specifiers for the line
+% thickness and box color of the unit cell outline, respectively.
+% thick and box_clr are optional; they default to 1 and gray, respectively.
 
 function draw_lattice(basis,thick,box_clr)
         

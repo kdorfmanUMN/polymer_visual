@@ -67,7 +67,7 @@ end
 function R = rearrangePts(A, grid, dim)
 
     n_mnr = size(A,2);
-    R = zeros([grid n_mnr]); % store values of volume fraction on grid
+    R = zeros([grid+1 n_mnr]); % store values of volume fraction on grid
     counter = 0;
     
     for iz=1:grid(3)+1

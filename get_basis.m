@@ -6,7 +6,10 @@
 
 % Also, the function has an optional second output, which represents
 % the reciprocal lattice vectors corresponding to the real-space
-% lattice vectors defined in basis. 
+% lattice vectors defined in basis. We use the convention that the dot
+% product between a lattice basis vector and its corresponding reciprocal
+% lattice basis vector equals 1, because this is the convention used by
+% MATLAB's built-in Fast Fourier Transform commands.
 
 function [basis,kbasis] = get_basis(cell_d,angles)
    
@@ -23,8 +26,12 @@ function [basis,kbasis] = get_basis(cell_d,angles)
     basis(3,1) = c * cos(beta);
     basis(3,2) = c * (cos(alpha) - cos(beta)*cos(gamma))/sin(gamma);
     basis(3,3) = c * sqrt(1 - cos(beta)^2 - ((cos(alpha) - cos(beta)*cos(gamma))/sin(gamma))^2);
-    basis = round(basis,8);
+    basis = round(basis,10);
 
-    kbasis = zeros(size(basis));
+    V = abs(dot(basis(1,:),cross(basis(2,:),basis(3,:))));
+    kbasis = zeros(3); 
+    kbasis(1,:) = round(cross(basis(2,:),basis(3,:))/V,10);
+    kbasis(2,:) = round(cross(basis(3,:),basis(1,:))/V,10);
+    kbasis(3,:) = round(cross(basis(1,:),basis(2,:))/V,10);
     
 end
