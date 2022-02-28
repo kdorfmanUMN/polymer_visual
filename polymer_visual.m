@@ -23,7 +23,7 @@ function polymer_visual(filename)
                    1 0 0; % Direction of x-axis of contour plot
                    0 1 0];% Direction of y-axis of contour plot
 
-    opacity = ones(n_mnr,2); %Block Opacity
+    opacity = ones(2,n_mnr); %Block Opacity
     %opacity = [1,1;0,0.65;1,1];
     
     thick = 1; %Box Thickness Value
@@ -60,6 +60,7 @@ function polymer_visual(filename)
     
     % Draw individual density profiles for each monomer species specified
     % in mono_disp:
+    disp(ismatrix(R))
     individual_profiles(R,x,y,z,"isovalue",isovalue,...
                         "mono_label",mono_label,"opacity",opacity,...
                         "map",map_store)
@@ -112,21 +113,22 @@ function polymer_visual(filename)
         end
 
         % Simultaneous Visualisation
-        D = R;
-        figure(n_mnr+1)
-        title('Composite Density Profile')
         if n_mnr > 4
-            cdp = figure(n_mnr+1);
+            cdp = figure(); hold on;
             set (cdp, 'Units', 'normalized', 'Position', [0,0,1,1]);
+        else
+            figure(); hold on;
         end
-        newisovalue = zeros(size(comp_disp));
+        title('Composite Density Profile')
+
+        D = R;
         for in = comp_disp
-            D(:,:,:,in) = R(:,:,:,in) +in -1;
+            D(:,:,:,in) = R(:,:,:,in) + in - 1;
             data = (D(:,:,:,in));
             p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
-                'FaceColor',map_store{in}(1,:),'EdgeColor','none','FaceAlpha',opacity(in,1));
+                'FaceColor',map_store{in}(1,:),'EdgeColor','none','FaceAlpha',opacity(1,in));
             p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
-                'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
+                'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(2,in));
 
             if dim == 3
                 view(3);                        %Sets the view to 3-D
@@ -191,9 +193,9 @@ function polymer_visual(filename)
 
                     data = D(:,:,:,in);
                     p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
-                        'FaceColor',map_store{in}(1,:),'EdgeColor','none','FaceAlpha',opacity(in,1));
+                        'FaceColor',map_store{in}(1,:),'EdgeColor','none','FaceAlpha',opacity(1,in));
                     p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
-                        'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(in,2));
+                        'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(2,in));
                     set(gcf,'Renderer','zbuffer')
                 end
             end
@@ -222,7 +224,6 @@ function polymer_visual(filename)
         draw_lattice(basis,thick,box_clr)
 
         if n_mnr>4
-            figure(n_mnr+1)
             cbh=colorbar;
             c = 0;
             for in = 1:n_mnr
@@ -261,14 +262,10 @@ function polymer_visual(filename)
                 cb_pos(8,:)= [.90 .11 .04 .4]; %x,y,width,length
             end
 
-            figure(n_mnr+1)
-            ax(n_mnr+1) = gca;
+            ax(n_mnr+1) = gca; hold on;
 
             clear cblabel
             for in = 1:n_mnr
-                c=0;
-
-                figure(n_mnr+1)
 
                 ax(in) = axes;
                 colormap(ax(in),cell2mat(map_store(in)))
@@ -312,6 +309,8 @@ function polymer_visual(filename)
             axis vis3d; % Freezes aspect ratio (allowing rotation)
         end
     end
+
+    hold off
 
     % I(q) plots
 
@@ -415,7 +414,7 @@ function polymer_visual(filename)
             end
         end
 
-        figure(n_mnr+3)
+        figure(); hold on;
         semilogy(q_plot,I_plot,'.-')
         xlabel(['q [' char(197) '^-^1]'])
         ylabel('Intensity')
@@ -428,8 +427,9 @@ function polymer_visual(filename)
         for ii = 1:length(x_index)
             I_plot2((ii*t_fcr)-(t_fcr-1)) = I(ii);
         end
+        hold off;
 
-        figure(n_mnr+4)
+        figure(); hold on;
         semilogy(x_index_plot,I_plot2,'.-')
         ylabel('Intensity')
         xlabel('Miller Indices')
@@ -441,7 +441,8 @@ function polymer_visual(filename)
         ax.XTick = linspace(1,length(x_index)*t_fcr,length(x_index)+1);
         ax.XTickLabel = x_label;
         ax.XTickLabelRotation = 45;
-
+        
+        hold off
     end
 
     % The 1-D Density Line
@@ -450,7 +451,7 @@ function polymer_visual(filename)
 
         startloc = [0 0 0]; %Starting coordinates (normalized) for 1-D density plot
 
-        figure(n_mnr+5)
+        figure(); hold on
         userinput = inputvec;
 
         for i = 1:3
@@ -506,7 +507,7 @@ function polymer_visual(filename)
         legend(legend_labels3)
         legend('Location','northeastoutside')
 
-
+        hold off
 
     end
 
@@ -532,7 +533,6 @@ function polymer_visual(filename)
         end
         cos_theta = dot(xvec_orth,yvec_orth)/(norm(xvec_orth)*norm(yvec_orth));
         theta = acos(cos_theta);
-        figure(n_mnr+6);
 
         % Convert vectors to grid coordinates
         start_coord = startloc .* grid + [1 1 1];
@@ -611,7 +611,7 @@ function polymer_visual(filename)
         cblabel2 = zeros(n_mnr,25); 
         cblabel3 = zeros(n_mnr,6);
         
-        figure(n_mnr+6); hold on; 
+        figure(); hold on; 
         
         for in = 1:n_mnr
             cblabel2(in,:) = round(linspace(isovalue(in),max_comps(in),25),3);
@@ -667,7 +667,8 @@ function polymer_visual(filename)
         xlim([0,1])
         ylim([0,1])
 
+        hold off
+        
     end
-
     toc
 end

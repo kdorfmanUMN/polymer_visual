@@ -39,6 +39,19 @@ function individual_profiles(R,x,y,z,options)
         
         % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % The rest of the inputs are optional name-value pair inputs:
+
+        % save_filename is a filename to which the figures will be saved.
+        % The file extension provided (e.g. ".fig" or ".png") will be used
+        % to determine the type of file to save. Since this function
+        % typically generates more than 1 figure, we append mono_label(i)
+        % to the end of the filename when saving the composition profile
+        % for species i. If left empty (which is the default behavior), the
+        % figures are not saved.
+        options.save_filename = "";
+
+        % fontsize specifies the FontSize parameter for the axis on which
+        % data are plotted. Default value is 10.
+        options.fontsize = 10;
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -54,8 +67,8 @@ function individual_profiles(R,x,y,z,options)
         options.mono_label
          
         % opacity contains values of opacity to plot for each species. 2
-        % opacities are specified for each species i: opacity(i,1) is the
-        % opacity of the interior of the domains, while opacity(i,2) is the
+        % opacities are specified for each species i: opacity(1,i) is the
+        % opacity of the interior of the domains, while opacity(2,i) is the
         % opacity of the exterior (caps) of the domains. If unspecified,
         % all values default to 1 (completely opaque).
         options.opacity
@@ -75,12 +88,17 @@ function individual_profiles(R,x,y,z,options)
         
         % make_3d is a boolean. If true, it will plot a 2D dataset in 3D.
         options.make_3d = false;
+
+        % cb_ticks is the number of ticks on the colorbar, default is 10.
+        options.cb_ticks = 10;
         
     end
-
-    if ischar(R) || isstring(R) % if a filename is passed to the function
+    
+    % if a filename is passed to the function, read data from that file
+    if ischar(R) || isstring(R) 
         
-        clear x y z;
+        clear x y z; % We will determine x, y, and z from the rgrid file
+        close all; % close other figures
                 
         % Read data from file
         [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(R);
@@ -92,8 +110,12 @@ function individual_profiles(R,x,y,z,options)
         
         % Get lattice basis vectors
         basis = get_basis(cell_d,angle);
-        
-    elseif ismatrix(R) % R is a data array containing species compositions
+    
+    % If R is not a string defining a filename, we assume it is a data
+    % array containing species compositions. So, below we make sure we have
+    % all of the other data we need to proceed and define some useful
+    % variables.
+    else
         
         % Make sure that we have x and y (and z if data are 3D):
         if isempty(x) || isempty(y) % if x or y are not provided
@@ -130,10 +152,6 @@ function individual_profiles(R,x,y,z,options)
             error("x should have either 2 or 3 dimensions")
         end
         
-    else
-        
-        error("First variable must either be data matrix or filename")
-    
     end
     
     
@@ -141,7 +159,7 @@ function individual_profiles(R,x,y,z,options)
     % default values if they are not provided as name-value inputs
 
     if isfield(options,'mono_label')
-        mono_label = options.monolabel;
+        mono_label = options.mono_label;
     else
         mono_label = char(1,3);
         for in = 1:n_mnr
@@ -152,7 +170,7 @@ function individual_profiles(R,x,y,z,options)
     if isfield(options,'opacity')
         opacity = options.opacity;
     else
-        opacity = ones(n_mnr,2);
+        opacity = ones(2,n_mnr);
     end
     
     if isfield(options,'map')
@@ -170,83 +188,104 @@ function individual_profiles(R,x,y,z,options)
     hex3 = options.hex3; 
     thick = options.thick; 
     box_clr = options.box_color;
+    cb_ticks = options.cb_ticks;
+    save_filename = options.save_filename;
+    fontsize = options.fontsize;
     clear options
     
     
     % Create the composition profile for each species
     for in = 1:n_mnr
         
-        figure(); hold on
-        
+        figure(); hold on; set(gca,'fontsize',fontsize)
         title(strcat(mono_label(in),' Block Density Profile'))
+
+        % Plot isosurfaces, isocaps, and unit cell outlines
         patch(isosurface(x,y,z,R(:,:,:,in),isovalue(in)), ...
               'FaceColor',map{in}(1,:),'EdgeColor','none',...
-              'FaceAlpha',opacity(in,1));
+              'FaceAlpha',opacity(1,in));
         fvc = isocaps(x,y,z,R(:,:,:,in),isovalue(in));
         patch(fvc,'FaceColor','interp','EdgeColor','none',...
-              'FaceAlpha',opacity(in,2));
-          
+              'FaceAlpha',opacity(2,in));
+        draw_lattice(basis,thick,box_clr);
+        
+        % Set colormap
         colormap(map{in})
+        
+        % We only need to show the colorbar if the isosurface intersects
+        % with the faces of the unit cell. Thus, we use the data from the
+        % isocaps to determine if we need to plot the colorbars.
+        max_color = max(fvc.facevertexcdata);
+        if isovalue(in) < max_color 
+            
+            % Create colorbar:
+            cb_start = isovalue(in);
+            cb_end = max_color;
 
-        if isovalue(in) < max(R(:,:,:,in)) % If we need a colorbar on the plot
-
-            cblabelstart = isovalue(in);
-            cblabelend = max(data);
-
-            n_labels = 10;
-
-            if cblabelend - cblabelstart > 0.1
-                cblabel = round(linspace(cblabelstart,cblabelend,n_labels),2);
+            if cb_end - cb_start > 0.1
+                cblabel = round(linspace(cb_start,cb_end,cb_ticks),2);
             else
-                cblabel = round(linspace(cblabelstart,cblabelend,n_labels),3);
+                cblabel = round(linspace(cb_start,cb_end,cb_ticks),3);
             end
-            l_lngth = linspace(cblabelstart,cblabelend,10);
+
+            l_lngth = linspace(cb_start,cb_end,cb_ticks);
             cbh = colorbar;
-            set(cbh,'ylim',[cblabelstart cblabelend],'ytick',...
-                l_lngth,'Yticklabel',cblabel)
+            set(cbh,'ylim',[cb_start cb_end],'ytick',...
+                l_lngth,'Yticklabel',cblabel,'fontsize',fontsize)
 
             title1 = strcat('\phi','_',mono_label(in));
-            title(cbh,title1)
-
+            title(cbh,title1,'fontsize',fontsize*1.1)
+        
+        % If colorbar is not needed, we opt instead to add a text box
+        % indicating the value of the isovalue we are showing.
         else
+
             % Creating the label for the isovalue(in)
-            text_disp = strcat('\fontsize{14}\phi','_',mono_label(in),'=',...
-                               num2str(round(isovalue(in),2))); 
+            text_disp = strcat('\phi','_',mono_label(in),'=',...
+                               num2str(round(isovalue(in),2)),...
+                               'fontsize',fontsize+4); 
 
             % Setting the location for the label
             text(x(grid(1)+1,1,round(grid(3)/2)), ...
                  y(grid(1)+1,1,round(grid(3)/2)), ...
                  z(grid(1)+1,1,round(grid(3)/2)),...
-                 text_disp,'color',map{in}(1,:))
+                 text_disp,'color',map{in}(end,:))
+
         end
-
+        
+        % If hex3 == true, we plot two more unit cells rotated by 120° and
+        % 240° around the z-axis, which is a common way to visualize
+        % hexagonal unit cells. 
         if hex3
+            
+            for rotation = [120,240] % Angle of rotation, in degrees
+                
+                % Create rotation matrix to apply to our data coordinates
+                rot_matrix = [ cosd(rotation), sind(rotation), 0;
+                              -sind(rotation), cosd(rotation), 0;
+                                            0,              0, 1];
 
-            % Draw unit cell outlines for the second and third unit cells:
-            rot_matrix = rotz(120); % Rotation of 120° around z axis
-            basis_2 = (rot_matrix * (basis'))';
-            basis_3 = (rot_matrix * (basis'))';
-            draw_lattice(basis_2,thick,box_clr) % Draw second unit cell
-            draw_lattice(basis_3,thick,box_clr) % Draw second unit cell
-
-            for rotation = 1:2
+                % Put x, y, and z data into a 2D array coord_set, where
+                % each row represents the coordinates of one data point.
+                % This allows us to apply the rotation matrix to our data
                 size_grid = (grid(1)+1)*(grid(2)+1)*(grid(3)+1);
                 coord_set = zeros(size_grid,3);
                 counter = 0;
-
                 for iz = 1:grid(3)+1
                     for iy = 1:grid(2)+1
                         for ix = 1:grid(1)+1
                             counter = counter +1;
-                            coord_set(counter,1) = x(ix,iy,iz) ;
-                            coord_set(counter,2) = y(ix,iy,iz) ;
-                            coord_set(counter,3) = z(ix,iy,iz) ;
+                            coord_set(counter,1) = x(ix,iy,iz);
+                            coord_set(counter,2) = y(ix,iy,iz);
+                            coord_set(counter,3) = z(ix,iy,iz);
                         end
                     end
                 end
 
+                % Apply rotation matrix to data
                 coord_set = coord_set*rot_matrix;
-
+                
+                % Put data back into 3D arrays x2, y2, and z2 for plotting
                 counter = 0;
                 x2 = zeros(size(x));
                 y2 = zeros(size(y));
@@ -261,36 +300,34 @@ function individual_profiles(R,x,y,z,options)
                         end
                     end
                 end
+                clear coord_set
 
+                % Plot the isosurface, isocaps, and unit cell outline for 
+                % the rotated unit cell
                 patch(isosurface(x2,y2,z2,R(:,:,:,in),isovalue(in)), ...
                       'FaceColor',map{in}(1,:),'EdgeColor','none', ...
-                      'FaceAlpha',opacity(in,1));
+                      'FaceAlpha',opacity(1,in));
                 patch(isocaps(x2,y2,z2,R(:,:,:,in),isovalue(in)), ...
                       'FaceColor','interp','EdgeColor','none', ...
-                      'FaceAlpha',opacity(in,2));
+                      'FaceAlpha',opacity(2,in));
+                basis_2 = basis * rot_matrix; % rotated basis vecs
+                draw_lattice(basis_2,thick,box_clr);
 
             end
         end
 
-        if dim == 3
-            view(3);                        %Sets 3-D view
-        elseif dim == 2
-            view(2);                        %Sets 2-D view
-        elseif dim == 1
-            view(2);                        %Sets 2-D view
+        % Set view
+        if size(basis,1) == 3
+            view(3); % Sets 3-D view
+        elseif size(basis,1) == 2
+            view(2); % Sets 2-D view
         end
 
-        axis equal;               %Equates the aspect ratio for each axis
-        axis vis3d;               %Freezes aspect ratio (allowing rotation)
-        %axis tight;              %Snaps the axis to the data set
-
-        draw_lattice(basis,thick,box_clr)
-
-        set(gcf,'Renderer','zbuffer');
+        axis equal;  % Equates the aspect ratio for each axis
+        axis vis3d;  % Freezes aspect ratio (allowing rotation)
+        %axis tight; % Snaps the axis to the data set
 
         rotate3d
-
-        hold off
 
         % Lighting options
         %   set(p2,'AmbientStrength',.6);
@@ -299,5 +336,16 @@ function individual_profiles(R,x,y,z,options)
         %   isonormals(data,p1);
         %   lightangle(45,30);
         %   lighting phong
+        
+        % Save figure if a filename is provided
+        if save_filename ~= ""
+            [f_path,f_name,f_ext] = fileparts(save_filename);
+            savefile = fullfile(f_path, ...
+                                strcat(f_name,mono_label(in),f_ext));
+            saveas(gcf,savefile);
+        end
+
+        hold off
+
     end
 end
