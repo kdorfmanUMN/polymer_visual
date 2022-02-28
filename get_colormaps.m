@@ -1,13 +1,12 @@
 
-function [map_store,outcolor] = get_colormaps(n_dp)
+function [map_store,outcolor] = get_colormaps(n)
     
+    arguments
+        n = 1000 % number of distinct colors in each colormap
+    end
+
     % Drawing the Color Maps
     ncolor = 8;
-    cn = zeros(1,ncolor);
-
-    for j = 1:ncolor
-        cn(j)=(10^n_dp);
-    end
 
     % low = low fraction, i.e. light
     color_low = zeros(ncolor,3);
@@ -39,10 +38,10 @@ function [map_store,outcolor] = get_colormaps(n_dp)
     map_store = cell(ncolor,1);
 
     for in = 1:ncolor
-        temp_map = zeros(cn(in),3);
-        temp_map(:,1) = linspace(colorpad(in,1,1),colorpad(in,1,2),cn(in)); %Red
-        temp_map(:,2) = linspace(colorpad(in,2,1),colorpad(in,2,2),cn(in)); %Green
-        temp_map(:,3) = linspace(colorpad(in,3,1),colorpad(in,3,2),cn(in)); %Blue
+        temp_map = zeros(n,3);
+        temp_map(:,1) = linspace(colorpad(in,1,1),colorpad(in,1,2),n); %Red
+        temp_map(:,2) = linspace(colorpad(in,2,1),colorpad(in,2,2),n); %Green
+        temp_map(:,3) = linspace(colorpad(in,3,1),colorpad(in,3,2),n); %Blue
         map_store{in}=temp_map;
     end
     

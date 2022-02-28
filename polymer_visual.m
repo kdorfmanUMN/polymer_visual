@@ -11,8 +11,6 @@ function polymer_visual(filename)
     [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(filename);
     basis = get_basis(cell_d,angle);
     
-    comp_disp = 1:n_mnr;
-    
     % Other Inputs
     linedraw = true; % draw the isovalue plot
     n_dp = 3; %Number of significant decimal places for color mapping
@@ -27,7 +25,7 @@ function polymer_visual(filename)
     %opacity = [1,1;0,0.65;1,1];
     
     thick = 1; %Box Thickness Value
-    box_clr = [0.5 0.5 0.5]; %Box color
+    box_color = [0.5 0.5 0.5]; %Box color
 
     drawscatter = []; %Block to simulate scattering through
     h_set = 0:3; %Scattering indices
@@ -51,7 +49,7 @@ function polymer_visual(filename)
         max_comps(in) = max(max(max(R(:,:,:,in))));
     end
     
-    map_store = get_colormaps(n_dp);
+    map_store = get_colormaps();
     
     % Get isovalues if they are not user-defined:
     if isempty(isovalue)
@@ -61,256 +59,18 @@ function polymer_visual(filename)
     % Draw individual density profiles for each monomer species specified
     % in mono_disp:
     disp(ismatrix(R))
-    individual_profiles(R,x,y,z,"isovalue",isovalue,...
+    individual_profiles(R,x,y,z,"isovalue",isovalue,"map",map_store,...
                         "mono_label",mono_label,"opacity",opacity,...
-                        "map",map_store)
+                        "hex3",true,"thick",thick,"box_color",box_color,...
+                        "make3d",make3d,"cb_ticks",cb_ticks,"fontsize",...
+                        fontsize,"save_filename",save_filename)
 
     % Drawing the Composite Density Profile
-    
-    newisovalue = zeros(1,n_mnr);
-    cn = zeros(1,n_mnr);
-    for in = 1:n_mnr
-        newisovalue(in) = isovalue(in) + in - 1;
-        %Effective color map range (+5 to buffer)
-        cn(in) = 1+ ceil((10^n_dp)*max_comps(in)-((10^n_dp)*isovalue(in))); 
-    end
-    if ~isempty(comp_disp)
-        %
-        comp_disp = sort(comp_disp);
-
-        fill = zeros(1,n_mnr-1);
-
-        c = 0;
-        for in = comp_disp(1:end-1)
-            c = c +1;
-
-            if in~= n_mnr
-                fill(in) = (newisovalue(comp_disp(c+1))-newisovalue(in))*(10^n_dp) - cn(in);
-            end
-
-        end
-
-        fillmap_store = cell(1,n_mnr-1);
-        c = 0;
-        for in = comp_disp(1:end-1)
-            c = c +1;
-            temp_fillmap = zeros(round(fill(in)),3);
-            temp_fillmap(:,1) = linspace(map_store{in}(end,1),map_store{in}(1,1),round(fill(in))); %Red
-            temp_fillmap(:,2) = linspace(map_store{in}(end,2),map_store{in}(1,2),round(fill(in))); %Green
-            temp_fillmap(:,3) = linspace(map_store{in}(end,3),map_store{in}(1,3),round(fill(in))); %Blue
-            fillmap_store{in} = temp_fillmap;
-        end
-
-        newmap = [];
-        for in = comp_disp
-            if isovalue(in) < max_comps(in)
-                if in == n_mnr
-                    newmap = [newmap;map_store(in)];
-                else
-                    newmap = [newmap;map_store(in);fillmap_store(in)];
-                end
-            end
-        end
-
-        % Simultaneous Visualisation
-        if n_mnr > 4
-            cdp = figure(); hold on;
-            set (cdp, 'Units', 'normalized', 'Position', [0,0,1,1]);
-        else
-            figure(); hold on;
-        end
-        title('Composite Density Profile')
-
-        D = R;
-        for in = comp_disp
-            D(:,:,:,in) = R(:,:,:,in) + in - 1;
-            data = (D(:,:,:,in));
-            p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
-                'FaceColor',map_store{in}(1,:),'EdgeColor','none','FaceAlpha',opacity(1,in));
-            p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
-                'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(2,in));
-
-            if dim == 3
-                view(3);                        %Sets the view to 3-D
-            else
-                view(2);                        %Sets the view to 2-D
-            end
-            axis equal;                     %Equates the aspect ratio for each axis
-            axis vis3d;                     %Freezes aspect ratio (allowing rotation)
-            %axis tight;                     %Snaps the axis to the data set
-
-            if strcmp(lattype,'hexagonal') == 1
-                size_grid = (grid(1)+1)*(grid(2)+1)*(grid(3)+1);
-                coord_set = zeros(size_grid,3);
-
-                % Draw unit cell outlines for the second and third unit cells:
-                angle_2 = [pi/2 pi/2 (-2*pi)/3];
-                basis_2 = get_basis(cell_d,angle_2);
-                draw_lattice(basis_2,thick,box_clr) % Draw second unit cell
-
-                pi3 = -cell_d(1).*cos(pi/3); % Third unit cell in this code block
-                pi6 = -cell_d(1).*cos(pi/6);
-                line([-1.*cell_d(1);pi3],[0;pi6],[0;0],'color',box_clr,'LineStyle','-',...
-                     'LineWidth',thick);
-                line([-1.*cell_d(1);pi3],[0;-pi6],[0;0],'color',box_clr,'LineStyle','-',...
-                     'LineWidth',thick);
-                line([-1.*cell_d(1);pi3],[0;pi6],[cell_d(3);cell_d(3)],'color',box_clr,...
-                     'LineStyle','-','LineWidth',thick);
-                line([-1.*cell_d(1);pi3],[0;-pi6],[cell_d(3);cell_d(3)],'color',box_clr,...
-                     'LineStyle','-','LineWidth',thick);
-                line([-1.*cell_d(1);-1.*cell_d(1)],[0;0],[0;cell_d(3)],'color',box_clr,...
-                     'LineStyle','-','LineWidth',thick);
-
-                for i =1:2
-
-                    counter = 0;
-                    rotangle = 2*pi/3;
-
-                    for iz = 1:grid(3)+1
-                        for iy = 1:grid(2)+1
-                            for ix = 1:grid(1)+1
-                                counter = counter +1;
-                                coord_set(counter,1) = x(ix,iy,iz) ;
-                                coord_set(counter,2) = y(ix,iy,iz) ;
-                                coord_set(counter,3) = z(ix,iy,iz) ;
-                            end
-                        end
-                    end
-
-                    coord_set = coord_set*[cos(rotangle),sin(rotangle),0;-sin(rotangle),cos(rotangle),0;0,0,1];
-
-                    counter = 0;
-                    for iz = 1:grid(3)+1
-                        for iy = 1:grid(2)+1
-                            for ix = 1:grid(1)+1
-                                counter = counter +1;
-                                x(ix,iy,iz) = coord_set(counter,1) ;
-                                y(ix,iy,iz) = coord_set(counter,2) ;
-                                z(ix,iy,iz) = coord_set(counter,3) ;
-                            end
-                        end
-                    end
-
-                    data = D(:,:,:,in);
-                    p1 = patch(isosurface(x,y,z,data,newisovalue(in)), ...
-                        'FaceColor',map_store{in}(1,:),'EdgeColor','none','FaceAlpha',opacity(1,in));
-                    p2 = patch(isocaps(x,y,z,data,newisovalue(in)), ...
-                        'FaceColor','interp','EdgeColor','none','FaceAlpha',opacity(2,in));
-                    set(gcf,'Renderer','zbuffer')
-                end
-            end
-
-            if isovalue(in) >= max_comps(in)
-                % Creating the label for the isovalue
-                cell1 = {['\fontsize{14}\Phi' '_' mono_label(in) '='], num2str(round(isovalue(in),2))}; 
-                text_disp = {strjoin(cell1)};
-                
-                % Setting the location and color for the label
-                text( x(grid(1)+1,1,round(grid(3)/2)), y(grid(1)+1,1,round(grid(3)/2)), ...
-                      z(grid(1)+1,1,round(grid(3)/in)),text_disp,'color',map_store{in}(1,:)) 
-            end
-
-        end
-
-        colormap(cell2mat(newmap))
-
-        % cbh= colorbar ;
-        % set(cbh,'YTick',0:0.1:3)
-        %
-        % title(cbh,'\fontsize{14}\Phi')
-        % cbh.Location = 'eastoutside';
-        % cbh.Color = [1 0 1];
-
-        draw_lattice(basis,thick,box_clr)
-
-        if n_mnr>4
-            cbh=colorbar;
-            c = 0;
-            for in = 1:n_mnr
-                c = c+1;
-                leftlabel(c) = round(isovalue(in)+in -1,2);
-                leftlabel2(c) = round(isovalue(in),2);
-                c = c+1;
-                leftlabel(c) = round(max_comps(in)+in -1,2);
-                leftlabel2(c) = round(max_comps(in),2);
-            end
-
-            rightlabel = [0:0.1:1 0.1:0.1:1 0.1:0.1:1];
-            h1=axes('position',get(cbh,'position'),'color','none','ylim',...
-                    [isovalue(1)-0.01,max_comps(n_mnr)+2.01],'ytick',leftlabel,...
-                    'yticklabel',leftlabel2,'xtick',[]);
-            set(cbh,'YTick',0:0.1:3,'Yticklabel',rightlabel)
-            title(cbh,'\fontsize{14}\Phi')
-        else
-            if n_mnr < 4
-                cb_pos(1,:)= [.68 .11 .04 .815]; %x,y,width,length
-                cb_pos(2,:)= [.79 .11 .04 .815]; %x,y,width,length
-                cb_pos(3,:)= [.90 .11 .04 .815]; %x,y,width,length
-            elseif n_mnr == 4
-                cb_pos(1,:)= [.57 .11 .04 .815]; %x,y,width,length
-                cb_pos(2,:)= [.68 .11 .04 .815]; %x,y,width,length
-                cb_pos(3,:)= [.79 .11 .04 .815]; %x,y,width,length
-                cb_pos(4,:)= [.90 .11 .04 .815]; %x,y,width,length
-            elseif n_mnr > 4
-                cb_pos(1,:)= [.57 .11 .04 .4]; %x,y,width,length
-                cb_pos(2,:)= [.68 .11 .04 .4]; %x,y,width,length
-                cb_pos(3,:)= [.79 .11 .04 .4]; %x,y,width,length
-                cb_pos(4,:)= [.90 .11 .04 .4]; %x,y,width,length
-                cb_pos(5,:)= [.57 .11 .04 .4]; %x,y,width,length
-                cb_pos(6,:)= [.68 .11 .04 .4]; %x,y,width,length
-                cb_pos(7,:)= [.79 .11 .04 .4]; %x,y,width,length
-                cb_pos(8,:)= [.90 .11 .04 .4]; %x,y,width,length
-            end
-
-            ax(n_mnr+1) = gca; hold on;
-
-            clear cblabel
-            for in = 1:n_mnr
-
-                ax(in) = axes;
-                colormap(ax(in),cell2mat(map_store(in)))
-                ax(in)= gca;
-                ax(in).Visible = 'off';
-                ax(in).XTick = [];
-                ax(in).YTick = [];
-                ax(in).ZTick = [];
-
-                if isovalue(in) < max_comps(in)
-
-                    cblabelstart = isovalue(in);
-                    cblabelend = max_comps(in);
-    %                 if cblabelend - cblabelstart > 0.1
-    %                     cblabel(in,:) = round(linspace(cblabelstart,cblabelend,10),2);
-    %                 else
-                    cblabel(in,:) = round(linspace(cblabelstart,cblabelend,10),3);
-    %                 end
-                    l_lngth = linspace(0,1,10);
-                    cb(in) = colorbar(ax(in),'Position',cb_pos(in,:));
-                    set(cb(in),'ytick',l_lngth,'Yticklabel',cblabel(in,:))
-                    %set(cb(in),'ylim',[isovalue(in)-0.01,max_comps(in)+0.01])
-                    title1 = strcat('\fontsize{13}\Phi','_',mono_label(in));
-                    title(cb(in),title1)
-                end
-            end
-
-            linkprop(ax,{'view'});
-            if n_mnr < 4
-                set(ax,'Position',[.05 .11 .55 .815]); %x,y,width,length
-            else
-                set(ax,'Position',[.05 .11 .44 .815]); %x,y,width,length
-            end
-
-            if dim == 3
-                view(3);                        %Sets the view to 3-D
-            else
-                view(2);                        %Sets the view to 2-D
-            end
-            ax(n_mnr+1) = gca;
-            axis vis3d; % Freezes aspect ratio (allowing rotation)
-        end
-    end
-
-    hold off
+    composite_profile(R,x,y,z,"isovalue",isovalue,"map",map_store,...
+                      "mono_label",mono_label,"opacity",opacity,...
+                      "hex3",true,"thick",thick,"box_color",box_color,...
+                      "make3d",make3d,"cb_ticks",cb_ticks,"fontsize",...
+                      fontsize,"save_filename",save_filename)
 
     % I(q) plots
 
