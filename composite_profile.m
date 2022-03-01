@@ -204,6 +204,7 @@ function composite_profile(R,x,y,z,options)
     figure(); 
     hold on; 
     set(gca,'fontsize',fontsize);
+    title("Composite Density Profile")
     
     % Concatenate elements of map into a single long colormap called newmap
     if size(map,1) == 1 % if map is a horizontal cell array
@@ -357,12 +358,32 @@ function composite_profile(R,x,y,z,options)
     % Create colorbars and make them look good
     ax(n_mnr+1) = gca;
     pb = pbaspect;
+    if dim == 3
+        % First, we need to move the axes containing the plotted data to
+        % the LHS of the figure. We want to do this without shrinking the
+        % axes, which requires us to know the 2D aspect ratio of the 3D
+        % plot. This is not easy in MATLAB, so we find it manually using
+        % the viewing angle.
+        [az,el] = view();
+        view_vec = [cosd(az-90) sind(az-90) tand(el)];
+        view_vec = view_vec / norm(view_vec); % Make it have unit length
+        vert_vec = [0 0 1] - (dot([0 0 1],view_vec) * view_vec);
+        vert_vec = vert_vec / norm(vert_vec); % Make it have unit length
+        horz_vec = cross(vert_vec,view_vec);
+        horz_vec = horz_vec / norm(horz_vec); % Make it have unit length
+        width = dot([pb(1) -pb(2) 0], horz_vec);
+        height = dot(pb,vert_vec);
+        aspect_ratio = width / height;
+    else % dim == 2
+        aspect_ratio = pb(1) / pb(2);
+    end
     
-    set(ax(n_mnr+1),'Units','Pixels','InnerPosition',[30 45 330 330]);
+    pbwidth = aspect_ratio * 330;
+    set(ax(n_mnr+1),'Units','Pixels','InnerPosition',[45 45 pbwidth 310]);
     
     ax_pos = get(ax(n_mnr+1),'InnerPosition');
     cblabel = zeros(n_mnr,cb_ticks);
-    cb_pos = [ax_pos(1)+(ax_pos(3)*1.1),ax_pos(2),22,ax_pos(4)];
+    cb_pos = [ax_pos(1)+ax_pos(3)+30,ax_pos(2),22,ax_pos(4)];
     
     for in = 1:n_mnr
         
@@ -372,7 +393,7 @@ function composite_profile(R,x,y,z,options)
         cblabel(in,:) = round(linspace(cb_start,cb_end,cb_ticks),3);
         
         ax(in) = axes;
-        ax(in).InnerPosition = ax_pos;
+        %ax(in).InnerPosition = ax_pos;
         ax(in).Visible = 'off';
         ax(in).XTick = [];
         ax(in).YTick = [];
@@ -400,9 +421,8 @@ function composite_profile(R,x,y,z,options)
         cb_pos(1) = cb_pos(1) + cb_pos(3) + (txt_width * 1.5);
 
     end
-    
-    
-    title("Composite Density Profile")
+    set(ax,"OuterPosition",get(ax(n_mnr+1),"OuterPosition"));
+    %set(ax,"Position",get(ax(1),"Position"));
     fig_pos = get(gcf,'position');
     fig_pos(3) = cb_pos(1);
     set(gcf,'position',fig_pos);
