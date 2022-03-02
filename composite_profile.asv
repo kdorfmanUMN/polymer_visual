@@ -1,7 +1,8 @@
-% Drawing individual composition profiles for each species in a converged
-% SCFT solution.
+% This function draws the composition profile for all species in the
+% polymer system onto the same plot, with distinct colorbars for each
+% species.
 
-function individual_profiles(R,x,y,z,options)
+function composite_profile(R,x,y,z,options)
     %% Define all input variables and name/value pair options:
     arguments
         
@@ -40,14 +41,14 @@ function individual_profiles(R,x,y,z,options)
         % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % The rest of the inputs are optional name-value pair inputs:
 
-        % savefile is a filename to which the figures will be saved.
+        % save_filename is a filename to which the figures will be saved.
         % The file extension provided (e.g. ".fig" or ".png") will be used
         % to determine the type of file to save. Since this function
         % typically generates more than 1 figure, we append mono_label(i)
         % to the end of the filename when saving the composition profile
         % for species i. If left empty (which is the default behavior), the
         % figures are not saved.
-        options.savefile = "";
+        options.save_filename = "";
 
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
@@ -91,6 +92,19 @@ function individual_profiles(R,x,y,z,options)
 
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
+        
+        % cmap_rows defines the number of rows of colorbars that are
+        % shown on the figure. For example, if there are 8 colorbars on the
+        % figure, cmap_rows = 2 will result in a 2x4 grid of colorbars
+        % being shown on the figure, as opposed to the default 1x8 grid.
+        options.cmap_rows = 1;
+
+        % n_digits is the number of digits past the decimal point to use
+        % for the colorbar tick labels. Can be specified as a scalar, or as
+        % an array of length n_mnr (one value per monomer species plotted)
+        % if you want a different # of digits for each colorbar. Default is
+        % 3.
+        options.n_digits = 3;
         
     end
     
@@ -183,71 +197,89 @@ function individual_profiles(R,x,y,z,options)
         isovalue = get_isovalues(R,dim,n_mnr,grid,false,map);
     end
     
+    if isscalar(options.n_digits)
+        n_digits = ones(1,n_mnr) * options.n_digits;
+    else
+        if length(options.n_digits) ~= n_mnr
+            error('n_digits must be a scalar or an array of length n_mnr')
+        end
+        n_digits = options.n_digits;
+    end
+    
     hex3 = options.hex3; 
     thick = options.thick; 
     box_clr = options.box_color;
     cb_ticks = options.cb_ticks;
-    savefile = options.savefile;
+    save_filename = options.save_filename;
     fontsize = options.fontsize;
+    cmap_rows = options.cmap_rows;
     clear options
     
-    %% Create the composition profile for each species
+    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    %% Create composite density profile
+    
+    figure(); 
+    hold on; 
+    set(gca,'fontsize',fontsize);
+    title("Composite Density Profile")
+    
+    % Concatenate elements of map into a single long colormap called newmap
+    if size(map,1) == 1 % if map is a horizontal cell array
+        newmap = cell2mat(map(1:n_mnr)');
+    else % map is a vertical cell array
+        newmap = cell2mat(map(1:n_mnr));
+    end
+    
+    % Initialize variables that will be used to rescale data to our cmap
+    D = zeros(size(R));
+    newisovalue = zeros(1,n_mnr);
+    max_comps = zeros(1,n_mnr);
+    zero_val = 0;
+    
+    % Loop over each species to plot
     for in = 1:n_mnr
         
-        figure(); hold on; set(gca,'fontsize',fontsize)
-        title(strcat(mono_label(in),' Block Density Profile'))
-
-        % Plot isosurfaces, isocaps, and unit cell outlines
-        patch(isosurface(x,y,z,R(:,:,:,in),isovalue(in)), ...
+        % MATLAB only allows one colormap per axis, and we want to plot all
+        % of our data (each with its own colormap) on the same axis. Thus,
+        % we have to use a trick. We concatenate the colormaps for each
+        % species into one giant colormap, and then rescale our data to fit
+        % into the colormap appropriately. Then, we can just manually fix
+        % the colorbar ticklabels to indicate the correct data, rather than
+        % the rescaled data.
+        
+        % So, below we rescale R(:,:,:,in) such that the minimum is 0 and
+        % the maximum is size(map{in},1) - 1. We store this result in array
+        % D, where we also add an additional constant (zero_val) to ensure
+        % that none of the data range of species i overlaps with that of
+        % species j, for any i ≠ j.
+        
+        max_comps(in) = max(R(:,:,:,in),[],'all');
+        range = max_comps(in) - isovalue(in);
+        cmap_size = size(map{in},1);
+        
+        % Rescale data and isovalue:
+        D(:,:,:,in) = ((R(:,:,:,in) - isovalue(in)) * (cmap_size-1)...
+                      / range) + zero_val;
+        newisovalue(in) = zero_val;
+        
+        % Update zero_val for the next species we plot
+        zero_val = zero_val + cmap_size;
+        
+        % Plot rescaled data for this species
+        patch(isosurface(x,y,z,D(:,:,:,in),newisovalue(in)), ...
               'FaceColor',map{in}(1,:),'EdgeColor','none',...
               'FaceAlpha',opacity(1,in));
-        fvc = isocaps(x,y,z,R(:,:,:,in),isovalue(in));
-        patch(fvc,'FaceColor','interp','EdgeColor','none',...
+        patch(isocaps(x,y,z,D(:,:,:,in),newisovalue(in)), ...
+              'FaceColor','interp','EdgeColor','none',...
               'FaceAlpha',opacity(2,in));
-        draw_lattice(basis,thick,box_clr);
         
-        % Set colormap
-        colormap(map{in})
-        
-        % We only need to show the colorbar if the isosurface intersects
-        % with the faces of the unit cell. Thus, we use the data from the
-        % isocaps to determine if we need to plot the colorbars.
-        max_color = max(fvc.facevertexcdata);
-        if isovalue(in) < max_color 
-            
-            % Create colorbar:
-            cb_start = isovalue(in);
-            cb_end = max_color;
-
-            if cb_end - cb_start > 0.1
-                cblabel = round(linspace(cb_start,cb_end,cb_ticks),2);
-            else
-                cblabel = round(linspace(cb_start,cb_end,cb_ticks),3);
-            end
-
-            l_lngth = linspace(cb_start,cb_end,cb_ticks);
-            cbh = colorbar;
-            set(cbh,'ylim',[cb_start cb_end],'ytick',...
-                l_lngth,'Yticklabel',cblabel,'fontsize',fontsize)
-
-            title1 = strcat('\phi','_',mono_label(in));
-            title(cbh,title1,'fontsize',fontsize*1.1)
-        
-        % If colorbar is not needed, we opt instead to add a text box
-        % indicating the value of the isovalue we are showing.
+        % Set view angle
+        if dim == 3
+            view(3);                        %Sets the view to 3-D
         else
-
-            % Creating the label for the isovalue(in)
-            text_disp = strcat('\phi','_',mono_label(in),'=',...
-                               num2str(round(isovalue(in),2))); 
-
-            % Setting the location for the label
-            text(x(grid(1)+1,1,round(grid(3)/2)), ...
-                 y(grid(1)+1,1,round(grid(3)/2)), ...
-                 z(grid(1)+1,1,round(grid(3)/2)),...
-                 text_disp,'color',map{in}(end,:),'fontsize',fontsize+4)
-             
+            view(2);                        %Sets the view to 2-D
         end
+        
         
         % If hex3 == true, we plot two more unit cells rotated by 120° and
         % 240° around the z-axis, which is a common way to visualize
@@ -300,49 +332,162 @@ function individual_profiles(R,x,y,z,options)
 
                 % Plot the isosurface, isocaps, and unit cell outline for 
                 % the rotated unit cell
-                patch(isosurface(x2,y2,z2,R(:,:,:,in),isovalue(in)), ...
+                patch(isosurface(x2,y2,z2,D(:,:,:,in),newisovalue(in)), ...
                       'FaceColor',map{in}(1,:),'EdgeColor','none', ...
                       'FaceAlpha',opacity(1,in));
-                patch(isocaps(x2,y2,z2,R(:,:,:,in),isovalue(in)), ...
+                patch(isocaps(x2,y2,z2,D(:,:,:,in),newisovalue(in)), ...
                       'FaceColor','interp','EdgeColor','none', ...
                       'FaceAlpha',opacity(2,in));
-                basis_2 = basis * rot_matrix; % rotated basis vecs
-                draw_lattice(basis_2,thick,box_clr);
-
+                
+                if in == 1
+                    basis_2 = basis * rot_matrix; % rotated basis vecs
+                    draw_lattice(basis_2,thick,box_clr);
+                end
+                
             end
         end
-
-        % Set view
-        if size(basis,1) == 3
-            view(3); % Sets 3-D view
-        elseif size(basis,1) == 2
-            view(2); % Sets 2-D view
-        end
-
-        axis equal;  % Equates the aspect ratio for each axis
-        axis vis3d;  % Freezes aspect ratio (allowing rotation)
-        %axis tight; % Snaps the axis to the data set
-
-        % Lighting options
-        %   set(p2,'AmbientStrength',.6);
-        %   set(p1,'AmbientStrength',.5);
-
-        %   isonormals(data,p1);
-        %   lightangle(45,30);
-        %   lighting phong
-        
-        % Make sure that the aspect ratio of the data is correct
-        
-        % Save figure if a filename is provided
-        if savefile ~= ""
-            [f_path,f_name,f_ext] = fileparts(savefile);
-            save_filename = fullfile(f_path, ...
-                                strcat(f_name,mono_label(in),f_ext));
-            saveas(gcf,save_filename);
-        end
-        
-        rotate3d on
-        hold off
-
     end
+    
+    % Set colormap
+    colormap(newmap);
+    caxis([0,size(newmap,1)-1]);
+    
+    % Draw box around outside of unit cell
+    draw_lattice(basis,thick,box_clr)
+
+    % Fix data aspect ratio and set axis limits to "tight" setting
+    axis equal;
+    
+    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    %% Create colorbars and make them look good
+    ax(n_mnr+1) = gca; % Save the current axis so we can reference it
+    tmp = colorbar; % Create temporary colorbar in the default position
+    set(ax(n_mnr+1),"Units","Points") % Absolute units rather than reduced
+    set(tmp,"Units","Points")         % Absolute units rather than reduced
+    
+    % Below, we find the aspect ratio of the 2D projection of our 3D plot,
+    % which depends on the viewing angle. We will then set the width/height
+    % of our axes object to match this aspect ratio, which allows the plot
+    % to have the same height and left-edge position regardless of unit
+    % cell parameters. This is explained further in the documentation.
+    
+    pb = pbaspect; % Plot box aspect ratio
+    if dim == 3
+        [az,el] = view();
+        % view_vec is a vector in data coordinates that points directly at
+        % the viewer
+        view_vec = [cosd(az-90) sind(az-90) tand(el)];
+        view_vec = view_vec / norm(view_vec); % Make it have unit length
+        % vert_vec is a vector in data coordinates that points in the
+        % vertical direction in the plane of the plot (i.e. your screen)
+        vert_vec = [0 0 1] - (dot([0 0 1],view_vec) * view_vec);
+        vert_vec = vert_vec / norm(vert_vec); % Make it have unit length
+        % horz_vec is a vector in data coordinates that points in the
+        % horizontal direction in the plane of the plot (i.e. your screen)
+        horz_vec = cross(vert_vec,view_vec);
+        horz_vec = horz_vec / norm(horz_vec); % Make it have unit length
+        width = dot([pb(1) -pb(2) 0], horz_vec); % Reduced plot width
+        height = dot(pb,vert_vec); % Reduced plot height
+        aspect_ratio = width / height;
+    else % dim == 2
+        aspect_ratio = pb(1) / pb(2);
+    end
+    
+    % Fix the axes to reflect the correct aspect ratio
+    ax_pos = get(ax(n_mnr+1),"Position"); % Get current axes position
+    ax_pos(3) = ax_pos(4) * aspect_ratio; % Fix aspect ratio
+    set(ax(n_mnr+1),"Position",ax_pos);   % Apply adjusted axes position
+    delete(tmp) % Delete the temporary colorbar that we used to move the 
+                % axes leftward
+    
+    % Set up for the case of multiple rows of colorbars
+    ncol = ceil(n_mnr/cb_rows);
+    if cmap_rows > 1
+        % See how tall the colorbar title is
+        title1 = strcat('\phi','_',mono_label(1));
+        tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot the text
+        set(tmp,"Units","Points");
+        txt_height = get(tmp,"Extent"); % Find height of the text box
+        txt_height = txt_height(4);
+        delete(tmp) % Delete the text we plotted
+        title_h = txt_height * 1.25;
+        total_h = ax_pos(4);
+        top_pos = ax_pos(4)+ax_pos(2);
+        cb_space = total_h - (title_h * (cmap_rows-1));
+        cb_h = cb_space / cmap_rows; % height of each colorbar
+        rows = 1:cmap_rows;
+        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); % array for y coord of each colorbar
+    else
+        cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
+        cb_h = ax_pos(4); % height of each colorbar
+    end
+    cb_x = ax_pos(1)+ax_pos(3)+40; % x-coord of first colorbar column
+    
+    % Loop over columns/rows of colorbars and create colorbars
+    for col = 1:ncol
+        for row = 1:cmap_rows
+            
+            in = (row-1)*ncol + col;
+            
+            % Colorbar data limits
+            cb_start = isovalue(in);
+            cb_end = max_comps(in);
+
+            % Create colorbar ticklabels according to specs provided by user
+            cblabel = linspace(cb_start,cb_end,cb_ticks);
+            tick_format = strcat('%.',string(n_digits(in)),'f');
+            labels = compose(tick_format,cblabel');
+            l_lngth = linspace(0,1,cb_ticks);
+
+            % Create a new axes object for this colorbar & make it invisible
+            ax(in) = axes("Units","Points");
+            set(ax(in),"Visible","off","XTick",[],"YTick",[],"ZTick",[],...
+                "InnerPosition",ax_pos); % Place all axes in same position
+
+            % Assign the appropriate colormap to this axes
+            colormap(ax(in),cell2mat(map(in)));
+
+            % Create the colorbar
+            cb = colorbar(ax(in));
+            cb_pos = [cb_x,cb_y(row),22,cb_h];
+            set(cb,"axislocation","out","Units","Points",...
+                "ytick",l_lngth,"ticklabels",labels,...
+                "fontsize",fontsize,"Position",cb_pos,"color","k");
+
+            title1 = strcat('\phi','_',mono_label(in));
+            title(cb,title1,'fontsize',fontsize*1.1)
+
+            % Update colorbar position for the next time through the loop by
+            % estimating the width (in pts) of the ticklabels, and setting the
+            % next colorbar slightly rightward from the ticklabels.
+            [~,ind] = max(strlength(labels)); %Find ticklabel w/ max # of chars
+            tmp = text(0,0,0,labels(ind),'fontsize',fontsize); % Plot the text
+            set(tmp,"Units","Points");
+            txt_extent = get(tmp,"Extent"); % Find width of the text box
+            if txt_extent(3) > txt_width
+                txt_width = txt_extent(3);
+            end
+            delete(tmp) % Delete the text we plotted
+            
+        end
+        
+        cb_y = cb_y + 22 + txt_width + 20; 
+        txt_width = 0;
+    end
+    
+    % Update figure size to show everything we want to show
+    fig_pos = get(gcf,'position');
+    fig_pos(3) = cb_pos(1) * 1.05; % Make figure wide enough to see all cbs
+    fig_pos(4) = fig_pos(4) * 1.04; % Make figure taller to fit cb titles
+    set(gcf,'position',fig_pos);
+    
+    % Save figure if a filename is provided
+    if save_filename ~= ""
+        saveas(gcf,savefile);
+    end
+
+    rotate3d on
+    set(gcf,'currentaxes',ax(n_mnr+1))
+    hold off
+    
 end

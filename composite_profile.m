@@ -93,14 +93,17 @@ function composite_profile(R,x,y,z,options)
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
         
-        % cmap_rows defines the number of rows of colorbars that are
+        % cb_rows defines the number of rows of colorbars that are
         % shown on the figure. For example, if there are 8 colorbars on the
-        % figure, cmap_rows = 2 will result in a 2x4 grid of colorbars
+        % figure, cb_rows = 2 will result in a 2x4 grid of colorbars
         % being shown on the figure, as opposed to the default 1x8 grid.
-        options.cmap_rows = 1;
+        options.cb_rows = 1;
 
         % n_digits is the number of digits past the decimal point to use
-        % for the colorbar tick labels. Default is 3.
+        % for the colorbar tick labels. Can be specified as a scalar, or as
+        % an array of length n_mnr (one value per monomer species plotted)
+        % if you want a different # of digits for each colorbar. Default is
+        % 3.
         options.n_digits = 3;
         
     end
@@ -194,14 +197,22 @@ function composite_profile(R,x,y,z,options)
         isovalue = get_isovalues(R,dim,n_mnr,grid,false,map);
     end
     
+    if isscalar(options.n_digits)
+        n_digits = ones(1,n_mnr) * options.n_digits;
+    else
+        if length(options.n_digits) ~= n_mnr
+            error('n_digits must be a scalar or an array of length n_mnr')
+        end
+        n_digits = options.n_digits;
+    end
+    
     hex3 = options.hex3; 
     thick = options.thick; 
     box_clr = options.box_color;
     cb_ticks = options.cb_ticks;
     save_filename = options.save_filename;
     fontsize = options.fontsize;
-    cmap_rows = options.cmap_rows;
-    n_digits = options.n_digits;
+    cb_rows = options.cb_rows;
     clear options
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,8 +221,9 @@ function composite_profile(R,x,y,z,options)
     figure(); 
     hold on; 
     set(gca,'fontsize',fontsize);
-    title("Composite Density Profile")
-    
+    t = title("Composite Density Profile");
+    set(t,"Units","Points");
+    t_size = get(t,"extent");
     % Concatenate elements of map into a single long colormap called newmap
     if size(map,1) == 1 % if map is a horizontal cell array
         newmap = cell2mat(map(1:n_mnr)');
@@ -385,61 +397,91 @@ function composite_profile(R,x,y,z,options)
     % Fix the axes to reflect the correct aspect ratio
     ax_pos = get(ax(n_mnr+1),"Position"); % Get current axes position
     ax_pos(3) = ax_pos(4) * aspect_ratio; % Fix aspect ratio
+    if ax_pos(3) < t_size(3)
+        ax_pos(3) = t_size(3);
+    end
     set(ax(n_mnr+1),"Position",ax_pos);   % Apply adjusted axes position
     delete(tmp) % Delete the temporary colorbar that we used to move the 
                 % axes leftward
     
-    % Set the first colorbar position, 40pts to the right of the plot
-    cb_pos = [ax_pos(1)+ax_pos(3)+40, ax_pos(2), 22, ax_pos(4)];
-    
-    % Loop over species and create a colorbar for each
-    cblabel = zeros(n_mnr,cb_ticks); % Empty vector for our cb tick values
-
-    for in = 1:n_mnr
-        
-        % Colorbar limits
-        cb_start = isovalue(in);
-        cb_end = max_comps(in);
-        
-        % Create colorbar ticklabels according to specs provided by user
-        cblabel(in,:) = round(linspace(cb_start,cb_end,cb_ticks),n_digits);
-        labels = compose(strcat('%.',string(n_digits),'f'),cblabel(in,:)');
-        l_lngth = linspace(0,1,cb_ticks);
-
-        % Create a new axes object for this colorbar & make it invisible
-        ax(in) = axes("Units","Points");
-        set(ax(in),"Visible","off","XTick",[],"YTick",[],"ZTick",[],...
-            "InnerPosition",ax_pos); % Place all axes in same position
-        
-        % Assign the appropriate colormap to this axes
-        colormap(ax(in),cell2mat(map(in)));
-        
-        % Create the colorbar
-        cb = colorbar(ax(in));
-        set(cb,"axislocation","out","Units","Points",...
-            "ytick",l_lngth,"ticklabels",labels,...
-            "fontsize",fontsize,"Position",cb_pos,"color","k");
-
-        title1 = strcat('\phi','_',mono_label(in));
-        title(cb,title1,'fontsize',fontsize*1.1)
-        
-        % Update colorbar position for the next time through the loop by
-        % estimating the width (in pts) of the ticklabels, and setting the
-        % next colorbar slightly rightward from the ticklabels.
-        [~,ind] = max(strlength(labels)); %Find ticklabel w/ max # of chars
-        tmp = text(0,0,0,labels(ind),'fontsize',fontsize); % Plot the text
+    % Set up for the case of multiple rows of colorbars
+    ncol = ceil(n_mnr/cb_rows);
+    if cb_rows > 1
+        % See how tall the colorbar title is
+        title1 = strcat('\phi','_',mono_label(1));
+        tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot the text
         set(tmp,"Units","Points");
-        txt_width = get(tmp,"Extent"); % Find width of the text box
-        txt_width = txt_width(3);
+        txt_height = get(tmp,"Extent"); % Find height of the text box
+        txt_height = txt_height(4);
         delete(tmp) % Delete the text we plotted
-        cb_pos(1) = cb_pos(1) + cb_pos(3) + txt_width + 20; 
+        title_h = txt_height * 1.3 + 10;
+        total_h = ax_pos(4);
+        top_pos = ax_pos(4)+ax_pos(2);
+        cb_space = total_h - (title_h * (cb_rows-1));
+        cb_h = cb_space / cb_rows; % height of each colorbar
+        rows = 1:cb_rows;
+        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); % array for y coord of each colorbar
+    else
+        cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
+        cb_h = ax_pos(4); % height of each colorbar
+    end
+    cb_x = ax_pos(1)+ax_pos(3)+40; % x-coord of first colorbar column
+    
+    % Loop over columns/rows of colorbars and create colorbars
+    txt_width = 0;
+    for col = 1:ncol
+        for row = 1:cb_rows
+            in = (row-1)*ncol + col;
+            if in <= n_mnr
+                % Colorbar data limits
+                cb_start = isovalue(in);
+                cb_end = max_comps(in);
+
+                % Create colorbar ticklabels according to specs provided by user
+                cblabel = linspace(cb_start,cb_end,cb_ticks);
+                tick_format = strcat('%.',string(n_digits(in)),'f');
+                labels = compose(tick_format,cblabel');
+                l_lngth = linspace(0,1,cb_ticks);
+
+                % Create a new axes object for this colorbar & make it invisible
+                ax(in) = axes("Units","Points");
+                set(ax(in),"Visible","off","XTick",[],"YTick",[],"ZTick",[],...
+                    "InnerPosition",ax_pos); % Place all axes in same position
+
+                % Assign the appropriate colormap to this axes
+                colormap(ax(in),cell2mat(map(in)));
+
+                % Create the colorbar
+                cb = colorbar(ax(in));
+                cb_pos = [cb_x,cb_y(row),22,cb_h];
+                set(cb,"axislocation","out","Units","Points",...
+                    "ytick",l_lngth,"ticklabels",labels,...
+                    "fontsize",fontsize,"Position",cb_pos,"color","k");
+
+                title1 = strcat('\phi','_',mono_label(in));
+                title(cb,title1,'fontsize',fontsize*1.1);
+                % Update colorbar position for the next time through the loop by
+                % estimating the width (in pts) of the ticklabels, and setting the
+                % next colorbar slightly rightward from the ticklabels.
+                [~,ind] = max(strlength(labels)); %Find ticklabel w/ max # of chars
+                tmp = text(0,0,0,labels(ind),'fontsize',fontsize); % Plot the text
+                set(tmp,"Units","Points");
+                txt_extent = get(tmp,"Extent"); % Find width of the text box
+                if txt_extent(3) > txt_width
+                    txt_width = txt_extent(3);
+                end
+                delete(tmp) % Delete the text we plotted
+            end
+        end
         
+        cb_x = cb_x + 22 + txt_width + 20; 
+        txt_width = 0;
     end
     
     % Update figure size to show everything we want to show
     fig_pos = get(gcf,'position');
-    fig_pos(3) = cb_pos(1) * 1.05; % Make figure wide enough to see all cbs
-    fig_pos(4) = fig_pos(4) * 1.04; % Make figure taller to fit cb titles
+    fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
+    fig_pos(4) = fig_pos(4) + (fontsize*1.1); % Make figure taller to fit cb titles
     set(gcf,'position',fig_pos);
     
     % Save figure if a filename is provided
