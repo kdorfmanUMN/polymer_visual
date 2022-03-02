@@ -41,18 +41,18 @@ function composite_profile(R,x,y,z,options)
         % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % The rest of the inputs are optional name-value pair inputs:
 
-        % save_filename is a filename to which the figures will be saved.
+        % savefile is a filename to which the figures will be saved.
         % The file extension provided (e.g. ".fig" or ".png") will be used
         % to determine the type of file to save. Since this function
         % typically generates more than 1 figure, we append mono_label(i)
         % to the end of the filename when saving the composition profile
         % for species i. If left empty (which is the default behavior), the
         % figures are not saved.
-        options.save_filename = "";
+        options.savefile = "";
 
         % fontsize specifies the FontSize parameter for the axis on which
-        % data are plotted. Default value is 10.
-        options.fontsize = 10;
+        % data are plotted. Default value is 14.
+        options.fontsize = 14;
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -138,14 +138,16 @@ function composite_profile(R,x,y,z,options)
             error("z coordinates were not provided for 3D data")
         end
         
+        dim = ndims(x);
+        
         % Define grid, basis, and n_mnr (defined differently in 2D vs 3D)
-        if ndims(x) == 3
+        if dim == 3
             grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
             n_mnr = size(R,4);
             basis = [x(end,1,1),y(end,1,1),z(end,1,1);
                      x(1,end,1),y(1,end,1),z(1,end,1);
                      x(1,1,end),y(1,1,end),z(1,1,end);];
-        elseif ndims(x) == 2 %#ok<ISMAT>
+        elseif dim == 2
             n_mnr = size(R,3);
             basis = [x(end,1), y(end,1); x(1,end), y(1,end)];
             if options.make_3d
@@ -210,7 +212,7 @@ function composite_profile(R,x,y,z,options)
     thick = options.thick; 
     box_clr = options.box_color;
     cb_ticks = options.cb_ticks;
-    save_filename = options.save_filename;
+    savefile = options.savefile;
     fontsize = options.fontsize;
     cb_rows = options.cb_rows;
     clear options
@@ -357,7 +359,8 @@ function composite_profile(R,x,y,z,options)
     draw_lattice(basis,thick,box_clr)
 
     % Fix data aspect ratio and set axis limits to "tight" setting
-    axis equal;
+    daspect([1 1 1]);  % Equates the data aspect ratio for each axis
+    axis tight;        % Snaps the axis to the data set
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     %% Create colorbars and make them look good
@@ -373,26 +376,8 @@ function composite_profile(R,x,y,z,options)
     % cell parameters. This is explained further in the documentation.
     
     pb = pbaspect; % Plot box aspect ratio
-    if dim == 3
-        [az,el] = view();
-        % view_vec is a vector in data coordinates that points directly at
-        % the viewer
-        view_vec = [cosd(az-90) sind(az-90) tand(el)];
-        view_vec = view_vec / norm(view_vec); % Make it have unit length
-        % vert_vec is a vector in data coordinates that points in the
-        % vertical direction in the plane of the plot (i.e. your screen)
-        vert_vec = [0 0 1] - (dot([0 0 1],view_vec) * view_vec);
-        vert_vec = vert_vec / norm(vert_vec); % Make it have unit length
-        % horz_vec is a vector in data coordinates that points in the
-        % horizontal direction in the plane of the plot (i.e. your screen)
-        horz_vec = cross(vert_vec,view_vec);
-        horz_vec = horz_vec / norm(horz_vec); % Make it have unit length
-        width = dot([pb(1) -pb(2) 0], horz_vec); % Reduced plot width
-        height = dot(pb,vert_vec); % Reduced plot height
-        aspect_ratio = width / height;
-    else % dim == 2
-        aspect_ratio = pb(1) / pb(2);
-    end
+    [az,el] = view(); % viewing angle
+    aspect_ratio = get_aspect_ratio(az,el,pb); % aspect ratio of plot
     
     % Fix the axes to reflect the correct aspect ratio
     ax_pos = get(ax(n_mnr+1),"Position"); % Get current axes position
@@ -400,95 +385,116 @@ function composite_profile(R,x,y,z,options)
     if ax_pos(3) < t_size(3)
         ax_pos(3) = t_size(3);
     end
+    
     set(ax(n_mnr+1),"Position",ax_pos);   % Apply adjusted axes position
     delete(tmp) % Delete the temporary colorbar that we used to move the 
                 % axes leftward
     
     % Set up for the case of multiple rows of colorbars
     ncol = ceil(n_mnr/cb_rows);
-    if cb_rows > 1
+    if cb_rows > 1 % If we need to calculate positions of multiple cb rows
+        
         % See how tall the colorbar title is
         title1 = strcat('\phi','_',mono_label(1));
         tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot the text
         set(tmp,"Units","Points");
         txt_height = get(tmp,"Extent"); % Find height of the text box
         txt_height = txt_height(4);
-        delete(tmp) % Delete the text we plotted
-        title_h = txt_height * 1.3 + 10;
-        total_h = ax_pos(4);
-        top_pos = ax_pos(4)+ax_pos(2);
-        cb_space = total_h - (title_h * (cb_rows-1));
-        cb_h = cb_space / cb_rows; % height of each colorbar
+        delete(tmp) % Delete the temporary text we plotted
+        
+        % Get variables needed to determine colorbar positions
+        title_h = txt_height * 1.3 + 10; % Space allocated for cb titles
+        total_h = ax_pos(4); % Total height of each column
+        top_pos = ax_pos(4)+ax_pos(2); % coordinate of top edge of column
+        cb_space = total_h - (title_h * (cb_rows-1)); 
         rows = 1:cb_rows;
-        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); % array for y coord of each colorbar
-    else
+        
+        % construct cb_y, a list of the y-coordinates of the colorbars in
+        % each row. cb_y(r) is the y-coord of the colorbar in row r.
+        cb_h = cb_space / cb_rows; % height of all colorbars
+        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); 
+        
+    else % Only 1 colorbar row, use default height
+        
         cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
         cb_h = ax_pos(4); % height of each colorbar
+        
     end
-    cb_x = ax_pos(1)+ax_pos(3)+40; % x-coord of first colorbar column
+    
+    % set x-coord of first colorbar column, 40pts right of the axes object
+    cb_x = ax_pos(1)+ax_pos(3)+40; 
     
     % Loop over columns/rows of colorbars and create colorbars
-    txt_width = 0;
     for col = 1:ncol
+        txt_width = 0; % variable to help us set colorbar locations
         for row = 1:cb_rows
-            in = (row-1)*ncol + col;
-            if in <= n_mnr
+            
+            % Monomer index for this row/column
+            in = (row-1)*ncol + col; 
+            
+            if in <= n_mnr % If this column/row should contain a colorbar:
+                
                 % Colorbar data limits
                 cb_start = isovalue(in);
                 cb_end = max_comps(in);
 
-                % Create colorbar ticklabels according to specs provided by user
+                % Create cb ticklabels according to specs provided by user
                 cblabel = linspace(cb_start,cb_end,cb_ticks);
                 tick_format = strcat('%.',string(n_digits(in)),'f');
-                labels = compose(tick_format,cblabel');
+                cblabel = compose(tick_format,cblabel');
                 l_lngth = linspace(0,1,cb_ticks);
 
-                % Create a new axes object for this colorbar & make it invisible
+                % Create a new invisible axes object for this colorbar
                 ax(in) = axes("Units","Points");
-                set(ax(in),"Visible","off","XTick",[],"YTick",[],"ZTick",[],...
-                    "InnerPosition",ax_pos); % Place all axes in same position
+                set(ax(in),"Visible","off","XTick",[],"YTick",[],...
+                    "ZTick",[],"InnerPosition",ax_pos);
 
-                % Assign the appropriate colormap to this axes
+                % Assign the appropriate colormap to this axes object
                 colormap(ax(in),cell2mat(map(in)));
 
                 % Create the colorbar
                 cb = colorbar(ax(in));
                 cb_pos = [cb_x,cb_y(row),22,cb_h];
                 set(cb,"axislocation","out","Units","Points",...
-                    "ytick",l_lngth,"ticklabels",labels,...
+                    "ytick",l_lngth,"ticklabels",cblabel,...
                     "fontsize",fontsize,"Position",cb_pos,"color","k");
-
                 title1 = strcat('\phi','_',mono_label(in));
                 title(cb,title1,'fontsize',fontsize*1.1);
-                % Update colorbar position for the next time through the loop by
-                % estimating the width (in pts) of the ticklabels, and setting the
-                % next colorbar slightly rightward from the ticklabels.
-                [~,ind] = max(strlength(labels)); %Find ticklabel w/ max # of chars
-                tmp = text(0,0,0,labels(ind),'fontsize',fontsize); % Plot the text
+                
+                % Estimate the width of our ticklabels, and if it is larger
+                % than txt_width then update txt_width
+                [~,ind] = max(strlength(cblabel)); %Find longest ticklabel
+                tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
                 set(tmp,"Units","Points");
-                txt_extent = get(tmp,"Extent"); % Find width of the text box
-                if txt_extent(3) > txt_width
+                txt_extent = get(tmp,"Extent"); % Find width of the text
+                if txt_extent(3) > txt_width % Update txt_width if needed
                     txt_width = txt_extent(3);
                 end
-                delete(tmp) % Delete the text we plotted
+                delete(tmp) % Delete the temporary text we plotted
+                
             end
         end
         
+        % Update colorbar x-position for the next row
         cb_x = cb_x + 22 + txt_width + 20; 
-        txt_width = 0;
+        
     end
     
     % Update figure size to show everything we want to show
     fig_pos = get(gcf,'position');
     fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
-    fig_pos(4) = fig_pos(4) + (fontsize*1.1); % Make figure taller to fit cb titles
+    % Make figure taller to fit cb titles
+    fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
     set(gcf,'position',fig_pos);
     
+    %drawnow();
+    
     % Save figure if a filename is provided
-    if save_filename ~= ""
+    if savefile ~= ""
         saveas(gcf,savefile);
     end
-
+    
+    % Finish up
     rotate3d on
     set(gcf,'currentaxes',ax(n_mnr+1))
     hold off

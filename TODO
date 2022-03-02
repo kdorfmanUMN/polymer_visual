@@ -4,6 +4,7 @@
 - Make it so read_rgrid returns a basis instead of cell_d and angle
 - Add all name-value pairs to polymer_visual
 - Test and fix 2D functionality, including make_3d
+    - Especially true for scattering, make sure it actually works with 2D
 - Get rotate3d to work on composite profile
 - Learn how isovalue calculation works and write comments to explain it
 - Write documentation

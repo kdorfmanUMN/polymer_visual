@@ -51,7 +51,7 @@ function individual_profiles(R,x,y,z,options)
 
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
-        options.fontsize = 10;
+        options.fontsize = 14;
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -92,6 +92,13 @@ function individual_profiles(R,x,y,z,options)
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
         
+        % n_digits is the number of digits past the decimal point to use
+        % for the colorbar tick labels. Can be specified as a scalar, or as
+        % an array of length n_mnr (one value per monomer species plotted)
+        % if you want a different # of digits for each colorbar. Default is
+        % 3.
+        options.n_digits = 3;
+        
     end
     
     % if a filename is passed to the function, read data from that file
@@ -124,14 +131,15 @@ function individual_profiles(R,x,y,z,options)
             error("z coordinates were not provided for 3D data")
         end
         
+        dim = ndims(x);
         % Define grid, basis, and n_mnr (defined differently in 2D vs 3D)
-        if ndims(x) == 3
+        if dim == 3
             grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
             n_mnr = size(R,4);
             basis = [x(end,1,1),y(end,1,1),z(end,1,1);
                      x(1,end,1),y(1,end,1),z(1,end,1);
                      x(1,1,end),y(1,1,end),z(1,1,end);];
-        elseif ndims(x) == 2 %#ok<ISMAT>
+        elseif dim == 2
             n_mnr = size(R,3);
             basis = [x(end,1), y(end,1); x(1,end), y(1,end)];
             if options.make_3d
@@ -183,6 +191,15 @@ function individual_profiles(R,x,y,z,options)
         isovalue = get_isovalues(R,dim,n_mnr,grid,false,map);
     end
     
+    if isscalar(options.n_digits)
+        n_digits = ones(1,n_mnr) * options.n_digits;
+    else
+        if length(options.n_digits) ~= n_mnr
+            error('n_digits must be a scalar or an array of length n_mnr')
+        end
+        n_digits = options.n_digits;
+    end
+    
     hex3 = options.hex3; 
     thick = options.thick; 
     box_clr = options.box_color;
@@ -219,12 +236,11 @@ function individual_profiles(R,x,y,z,options)
             cb_start = isovalue(in);
             cb_end = max_color;
 
-            if cb_end - cb_start > 0.1
-                cblabel = round(linspace(cb_start,cb_end,cb_ticks),2);
-            else
-                cblabel = round(linspace(cb_start,cb_end,cb_ticks),3);
-            end
-
+            cblabel = round(linspace(cb_start,cb_end,cb_ticks),...
+                            n_digits(in));
+            tick_format = strcat('%.',string(n_digits(in)),'f');
+            cblabel = compose(tick_format,cblabel');
+            
             l_lngth = linspace(cb_start,cb_end,cb_ticks);
             cbh = colorbar;
             set(cbh,'ylim',[cb_start cb_end],'ytick',...
@@ -239,7 +255,7 @@ function individual_profiles(R,x,y,z,options)
 
             % Creating the label for the isovalue(in)
             text_disp = strcat('\phi','_',mono_label(in),'=',...
-                               num2str(round(isovalue(in),2))); 
+                               num2str(round(isovalue(in),n_digits(in)))); 
 
             % Setting the location for the label
             text(x(grid(1)+1,1,round(grid(3)/2)), ...
@@ -319,9 +335,9 @@ function individual_profiles(R,x,y,z,options)
             view(2); % Sets 2-D view
         end
 
-        axis equal;  % Equates the aspect ratio for each axis
-        axis vis3d;  % Freezes aspect ratio (allowing rotation)
-        %axis tight; % Snaps the axis to the data set
+        % Fix data aspect ratio and set axis limits to "tight" setting
+        daspect([1 1 1]);  % Equates the data aspect ratio for each axis
+        axis tight;        % Snaps the axis to the data set
 
         % Lighting options
         %   set(p2,'AmbientStrength',.6);
@@ -331,7 +347,45 @@ function individual_profiles(R,x,y,z,options)
         %   lightangle(45,30);
         %   lighting phong
         
-        % Make sure that the aspect ratio of the data is correct
+        % Set aspect ratio of the axes to be equal to that of the plot
+        pb = pbaspect; % Plot box aspect ratio
+        [az,el] = view(); % viewing angle
+        aspect_ratio = get_aspect_ratio(az,el,pb); % aspect ratio of plot
+        set(gca,'Units','Points'); % Fixed units rather than reduced units
+        ax_pos = get(gca,'Position');
+        ax_pos(3) = ax_pos(4) * aspect_ratio;
+        set(gca,'Position',ax_pos);
+        
+        if isovalue(in) < max_color % If we have a colorbar
+            
+            % Estimate the width of our ticklabels
+            [~,ind] = max(strlength(cblabel)); %Find longest ticklabel
+            tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
+            set(tmp,"Units","Points");
+            txt_extent = get(tmp,"Extent"); % Find width of the text
+            txt_width = txt_extent(3);
+            delete(tmp) % Delete the temporary text we plotted
+
+            % Update figure size to fit everything on the figure
+            set(cbh,'Units','Points'); % Fixed units rather than reduced
+            set(gcf,'Units','Points');
+            cb_pos = get(cbh,'Position');
+            fig_pos = get(gcf,'position');
+            % Make figure wide enough to see colorbar
+            fig_pos(3) = (cb_pos(1) + cb_pos(3)) + txt_width + 40;
+            % Make figure taller to fit cb titles
+            fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
+            set(gcf,'position',fig_pos);
+            
+        else
+            
+            % Make figure a little taller, just for aesthetics
+            set(gcf,'Units','Points');
+            fig_pos = get(gcf,'position');
+            fig_pos(4) = fig_pos(4) + (fontsize*1.1);
+            set(gcf,'position',fig_pos);
+            
+        end
         
         % Save figure if a filename is provided
         if savefile ~= ""

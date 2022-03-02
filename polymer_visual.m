@@ -26,6 +26,13 @@ function polymer_visual(filename)
     
     thick = 1; %Box Thickness Value
     box_color = [0.5 0.5 0.5]; %Box color
+    
+    scatterers = 1;
+    units = 'Å';
+    
+    cb_rows = 1; % # of rows of colorbars in composite density profile
+    cb_ticks = 8; % # of ticks on colorbars
+    n_digits = 3; % # of digits after the decimal point shown in cb ticklabels
 
     drawscatter = []; %Block to simulate scattering through
     h_set = 0:3; %Scattering indices
@@ -36,175 +43,52 @@ function polymer_visual(filename)
         mono_label(in) = char('A'+in-1);
     end
 
-    %weight(1) = 1.2;
-    %weight(2) = 1.2;
-    %weight(3) = 1.2;
-
-    %map_choice = [2 1 3]; %Map colors
-    %mono_disp = [];    %Desired monomers to display
-    %comp_disp = [1 3]; %Desired monomers to display in the composite
-
     max_comps = zeros(1,n_mnr);
     for in = 1:n_mnr
         max_comps(in) = max(max(max(R(:,:,:,in))));
     end
     
     map_store = get_colormaps();
+    fontsize = 15;
     
     % Get isovalues if they are not user-defined:
     if isempty(isovalue)
-        isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store);
+        isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store,...
+                                 fontsize);
+    end
+    
+    make_3d = false;
+    savefile = "";
+    writefile = ""; % to write scattering data
+    if strcmp(lattype,"hexagonal")
+        hex3=true;
+    else
+        hex3=false;
     end
     
     % Draw individual density profiles for each monomer species specified
     % in mono_disp:
-    disp(ismatrix(R))
     individual_profiles(R,x,y,z,"isovalue",isovalue,"map",map_store,...
                         "mono_label",mono_label,"opacity",opacity,...
-                        "hex3",true,"thick",thick,"box_color",box_color,...
-                        "make3d",make3d,"cb_ticks",cb_ticks,"fontsize",...
-                        fontsize,"save_filename",save_filename)
+                        "hex3",hex3,"thick",thick,"box_color",box_color,...
+                        "make_3d",make_3d,"cb_ticks",cb_ticks,"fontsize",...
+                        fontsize,"savefile",savefile)
 
-    % Drawing the Composite Density Profile
+    % Draw the Composite Density Profile
     composite_profile(R,x,y,z,"isovalue",isovalue,"map",map_store,...
                       "mono_label",mono_label,"opacity",opacity,...
-                      "hex3",true,"thick",thick,"box_color",box_color,...
-                      "make3d",make3d,"cb_ticks",cb_ticks,"fontsize",...
-                      fontsize,"save_filename",save_filename)
+                      "hex3",hex3,"thick",thick,"box_color",box_color,...
+                      "make_3d",make_3d,"cb_ticks",cb_ticks,"fontsize",...
+                      fontsize,"cb_rows",cb_rows,"n_digits",n_digits,...
+                      "savefile",savefile)
 
-    % I(q) plots
-
-    if ~isempty(drawscatter)
-        % Scattering
-
-        % Pre-setting the matrix
-
-        count = 0;
-
-        for i = 1:3
-            b(i) = (2*pi)/cell_d(i); %basis vectors
-        end
-
-
-        F_store = zeros(length(h_set)*length(k_set)*length(l_set),5);
-
-        for h = h_set
-            for k = k_set
-                for l = l_set
-                    count = count + 1;
-                    F_store(count,1) = h;
-                    F_store(count,2) = k;
-                    F_store(count,3) = l;
-                end
-            end
-        end
-
-        % Calculating the structure factor
-        x_index_label = cell(length(F_store),1);
-        x_label = cell(length(F_store),1);
-
-        I = zeros(1,length(F_store));
-        q = zeros(1,length(F_store));
-        x_index = zeros(1,length(F_store));
-
-        for i_f = 1:length(F_store)
-            h = F_store(i_f,1);
-            k = F_store(i_f,2);
-            l = F_store(i_f,3);
-            F_sum = 0;
-            for in = drawscatter
-                x_s = zeros(grid);
-                y_s = zeros(grid);
-                z_s = zeros(grid);
-
-                for iz=1:grid(3)
-                    for iy=1:grid(2)
-                        for ix=1:grid(1)
-                            x_s(ix,iy,iz) = x(ix,iy,iz)/cell_d(1);
-                            y_s(ix,iy,iz) = y(ix,iy,iz)/cell_d(2);
-                            z_s(ix,iy,iz) = z(ix,iy,iz)/cell_d(3);
-                            F_sum = F_sum + R(ix,iy,iz,in)*exp(2*1i*pi*((h*x_s(ix,iy,iz)) + ...
-                                    (k*y_s(ix,iy,iz))+(l*z_s(ix,iy,iz))));
-
-                        end
-                    end
-                end
-
-            end
-            F_store(i_f,4) = F_sum * cell_d(1)*cell_d(2)*cell_d(3);
-            F_store(i_f,5) = abs(F_sum)^2;
-            I(i_f) = F_store(i_f,5);
-            x_index(i_f) = i_f;
-            x_index_label(i_f) = {[ h k l ]};
-            x_label{i_f}=mat2str(cell2mat(x_index_label(i_f)));
-            % x_index_mag(i_f) = h^2 + k^2 + l^2;
-            % x_index_3(i_f) = h + k + l;
-            q(i_f) = sqrt((b(1)*h)^2 + (b(2)*k)^2 + (b(3)*l)^2);
-        end
-
-        % Plotting scatterplots
-
-        %I(q)
-
-        plotmat = sortrows([q;I]');
-
-        [q1,~,q_ind] = uniquetol(plotmat(:,1));
-
-        plotmat_avg = [q1,accumarray(q_ind,plotmat(:,2),[],@mean)];
-
-        q_sort = plotmat_avg(:,1);
-        I_sort = plotmat_avg(:,2);
-
-        % Making a delta function
-
-        t_fcr = 100;
-        q2 = linspace(0,max(q_sort),length(q_sort)*t_fcr);
-        q_plot = sort([q2 q_sort']);
-        I_plot = zeros(length(q_plot),1)+min(I);
-
-        step = 1;
-        for i = 1:length(q_plot)
-            if q_plot(i)== q_sort(step)
-
-                I_plot(i) = I_sort(step);
-                step = step + 1;
-                if step > length(q_sort)
-                    break
-                end
-            end
-        end
-
-        figure(); hold on;
-        semilogy(q_plot,I_plot,'.-')
-        xlabel(['q [' char(197) '^-^1]'])
-        ylabel('Intensity')
-
-        % vs Miller Indices
-
-        t_fcr = 100;
-        x_index_plot = linspace(1,length(x_index)*t_fcr,length(x_index)*t_fcr);
-        I_plot2 = zeros(length(x_index_plot),1)+min(I);
-        for ii = 1:length(x_index)
-            I_plot2((ii*t_fcr)-(t_fcr-1)) = I(ii);
-        end
-        hold off;
-
-        figure(); hold on;
-        semilogy(x_index_plot,I_plot2,'.-')
-        ylabel('Intensity')
-        xlabel('Miller Indices')
-
-        x_label{length(x_label)+1}=' ';
-
-        ax = gca;
-        %ax.YLim = [0 max(I)];
-        ax.XTick = linspace(1,length(x_index)*t_fcr,length(x_index)+1);
-        ax.XTickLabel = x_label;
-        ax.XTickLabelRotation = 45;
-        
-        hold off
-    end
-
+    % Draw the scattering plot
+    [f_path,f_name,f_ext] = fileparts(savefile);
+    scat_savefile = fullfile(f_path,strcat(f_name,'_scat',f_ext));
+    scattering_plot(R,x,y,z,scatterers,'fontsize',fontsize,'savefile',...
+                    scat_savefile,'theta_plot',false,'units',units,...
+                    'writefile',writefile);
+    
     % The 1-D Density Line
 
     if ~isempty(inputvec)
@@ -385,7 +269,7 @@ function polymer_visual(filename)
 
             contourf(xcontour,ycontour,contour_data(:,:,in),cblabel2(in,:),'linecolor','none')
             colormap(gca,cell2mat(map_store(in)))
-            cb(in) = colorbar(gca,'Position',cb_pos(in,:));
+            cb(in) = colorbar(gca);
             set(cb(in),'ytick',cblabel3(in,:),'Yticklabel',cblabel3(in,:))
             caxis([min(cblabel(in,:)),max(cblabel(in,:))])
             title1 = strcat('\phi','_',mono_label(in));

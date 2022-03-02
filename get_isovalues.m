@@ -1,6 +1,6 @@
 % Computing the isovalues
 
-function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store)
+function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store,fontsize)
 
     if nargin < 5
         linedraw = false;
@@ -265,8 +265,10 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store)
     
     % Plotting the rescaled volume fractions and isovalues if desired
     if linedraw
-        figure(); hold on;
-
+        figure(); 
+        hold on;
+        set(gca,'fontsize',fontsize)
+        
         linestyles(1) = {'-.'};
         linestyles(2) = {':'};
         linestyles(3) = {'--'};
