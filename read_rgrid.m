@@ -151,6 +151,8 @@ function [x,y,z,cell_d,angle] = gen_xyz(lattype, param, grid)
         grid(3) = grid(1);                  % 3D grid for 2D crystals
     end
     
+    basis = get_basis(cell_d,angle);
+
     % matrices for grid coords
     x = zeros(grid); % x coords on grid
     y = zeros(grid); % y coords on grid
@@ -162,9 +164,9 @@ function [x,y,z,cell_d,angle] = gen_xyz(lattype, param, grid)
     for iz=1:grid(3)+1
         for iy=1:grid(2)+1
             for ix=1:grid(1)+1
-                xtemp = cell_d(1) * (ix-1)/grid(1) + (cos(angle(3)))*( cell_d(2) * (iy-1)/grid(2)) + ((iz-1)/grid(3))*(cos(angle(1))*cell_d(3));
-                ytemp = cell_d(2) * (iy-1)/grid(2) * sin(angle(3)) + ((iz-1)/grid(3))*cos(angle(2))*cell_d(3);
-                ztemp = cell_d(3) * (iz-1)/grid(3) * sin(angle(1)) * sin(angle(2));
+                xtemp = (basis(1,1) * (ix-1)/grid(1)) + (basis(2,1) * (iy-1)/grid(2)) + (basis(3,1) * (iz-1)/grid(3));
+                ytemp = (basis(2,2) * (iy-1)/grid(2)) + (basis(3,2) * (iz-1)/grid(3));
+                ztemp = (basis(3,3) * (iz-1)/grid(3));
 
                 x(ix,iy,iz) = round(xtemp,nround);
                 y(ix,iy,iz) = round(ytemp,nround);

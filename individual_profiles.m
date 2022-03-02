@@ -40,14 +40,14 @@ function individual_profiles(R,x,y,z,options)
         % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % The rest of the inputs are optional name-value pair inputs:
 
-        % save_filename is a filename to which the figures will be saved.
+        % savefile is a filename to which the figures will be saved.
         % The file extension provided (e.g. ".fig" or ".png") will be used
         % to determine the type of file to save. Since this function
         % typically generates more than 1 figure, we append mono_label(i)
         % to the end of the filename when saving the composition profile
         % for species i. If left empty (which is the default behavior), the
         % figures are not saved.
-        options.save_filename = "";
+        options.savefile = "";
 
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
@@ -187,7 +187,7 @@ function individual_profiles(R,x,y,z,options)
     thick = options.thick; 
     box_clr = options.box_color;
     cb_ticks = options.cb_ticks;
-    save_filename = options.save_filename;
+    savefile = options.savefile;
     fontsize = options.fontsize;
     clear options
     
@@ -334,11 +334,11 @@ function individual_profiles(R,x,y,z,options)
         %   lighting phong
         
         % Save figure if a filename is provided
-        if save_filename ~= ""
-            [f_path,f_name,f_ext] = fileparts(save_filename);
-            savefile = fullfile(f_path, ...
+        if savefile ~= ""
+            [f_path,f_name,f_ext] = fileparts(savefile);
+            save_filename = fullfile(f_path, ...
                                 strcat(f_name,mono_label(in),f_ext));
-            saveas(gcf,savefile);
+            saveas(gcf,save_filename);
         end
         
         rotate3d on
