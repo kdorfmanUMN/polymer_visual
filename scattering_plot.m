@@ -60,6 +60,12 @@ function scattering_plot(R,x,y,z,scatterers,options)
         % written. This is very useful if you want to do further analyses
         % of the data.
         options.writefile = "";
+        
+        % hkls is an array in which each row corresponds to one scattering
+        % peak to include on the plot (if it is an actual peak). If hkl is
+        % not provided, the code below generates this array to include all
+        % values of h, k, and l that are 5 or lower. 
+        options.hkls = [];
 
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 14.
@@ -74,10 +80,13 @@ function scattering_plot(R,x,y,z,scatterers,options)
         % defining x, y, and z. This will be used in the x-axis label of
         % the plot, if provided. So, if units = 'Å', the x-axis label will
         % read 'q [Å^{-1}]'.
-        options.units;
+        options.units = "";
         
     end
-
+    
+    % Ensure that the code below can access our utilities
+    addpath(pwd+"/utilities")
+    
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
@@ -88,7 +97,7 @@ function scattering_plot(R,x,y,z,scatterers,options)
         [R,x,y,z,~,~,cell_d,angle,~,~] = read_rgrid(R);
         
         % Get lattice basis vectors
-        basis = get_basis(cell_d,angle);
+        [~,kbasis] = get_basis(cell_d,angle);
         
     else
         
@@ -96,42 +105,43 @@ function scattering_plot(R,x,y,z,scatterers,options)
                  x(1,end,1) y(1,end,1) z(1,end,1);
                  x(1,1,end) y(1,1,end) z(1,1,end)];
              
+        V = abs(dot(basis(1,:),cross(basis(2,:),basis(3,:))));
+        kbasis = zeros(3); 
+        kbasis(1,:) = round(cross(basis(2,:),basis(3,:))/V,10);
+        kbasis(2,:) = round(cross(basis(3,:),basis(1,:))/V,10);
+        kbasis(3,:) = round(cross(basis(1,:),basis(2,:))/V,10);
+             
     end
-    
-    % Calculate unit cell volume and reciprocal lattice vectors in the 
-    % Cartesian coordinate system of the unit cell.
-    % Rows 1, 2, and 3 of basis_inv are the x, y, and z reciprocal lattice
-    % vectors, respectively.
-    V = abs(dot(basis(1,:),cross(basis(2,:),basis(3,:))));
-    basis_inv = zeros(3); 
-    basis_inv(1,:) = round(cross(basis(2,:),basis(3,:))/V,10);
-    basis_inv(2,:) = round(cross(basis(3,:),basis(1,:))/V,10);
-    basis_inv(3,:) = round(cross(basis(1,:),basis(2,:))/V,10);
 
-    % Create list of hkl indices to check for scattering peaks if not provided
-    % (default list considers all combinations of 0 through 5)
-    hkls = zeros(6^3,3);
-    count = 0;
-    for h = 0:5
-        for k = 0:5
-            for l = 0:5
-                count = count + 1;
-                hkls(count,:) = [h,k,l];
+
+    % Create list of hkl indices to check for scattering peaks if not
+    % provided (default list considers all combinations of 0 through 5)
+    hkls = options.hkls;
+    if isempty(hkls)
+        hkls = zeros(6^3,3);
+        count = 0;
+        for h = 0:5
+            for k = 0:5
+                for l = 0:5
+                    count = count + 1;
+                    hkls(count,:) = [h,k,l];
+                end
             end
         end
     end
     hkls(1,:) = []; % Skip (000)
 
     % Create fgrid, which is a list of coordinates in reciprocal space
-    % corresponding to the hkl indices specified in hkls, such that fgrid(i,:)
-    % is the vector in reciprocal space described by hkls(i,:) for all i.
-    % Also, create q, where q(i) is the magnitude of vector fgrid(i,:).
+    % corresponding to the hkl indices specified in hkls, such that
+    % fgrid(i,:) is the vector in reciprocal space described by hkls(i,:)
+    % for all i. Also, create q, where q(i) is the magnitude of vector
+    % fgrid(i,:).
     fgrid = zeros(size(hkls,1),3);
     q = zeros(size(hkls,1),1);
     for row = 1:size(hkls,1)
-        fgrid(row,:) = ((hkls(row,1) * basis_inv(1,:)) + ...
-                        (hkls(row,2) * basis_inv(2,:)) + ...
-                        (hkls(row,3) * basis_inv(3,:)));
+        fgrid(row,:) = ((hkls(row,1) * kbasis(1,:)) + ...
+                        (hkls(row,2) * kbasis(2,:)) + ...
+                        (hkls(row,3) * kbasis(3,:)));
         q(row) = norm(fgrid(row,:));
     end
     
@@ -151,13 +161,13 @@ function scattering_plot(R,x,y,z,scatterers,options)
     rf = reshape(D(1:end-1,1:end-1,1:end-1),[],1);
 
     % Perform the FFT using nufftn, a function that performs an FFT on
-    % n-dimensional data that is non-uniformly distributed in space. 
-    % This function is used so that the FFT is correct for all types of unit
-    % cells; a uniform FFT only works for cubic data. 
+    % n-dimensional data that is non-uniformly distributed in space. This
+    % function is used so that the FFT is correct for all types of unit
+    % cells; a uniform FFT only works for cubic data.
 
-    % The output array, Y, is a 1d list of complex numbers, where Y(i) is the
-    % Fourier transform of our data evaluated at the coordinates fgrid(i,:) in
-    % reciprocal space.
+    % The output array, Y, is a 1d list of complex numbers, where Y(i) is
+    % the Fourier transform of our data evaluated at the coordinates
+    % fgrid(i,:) in reciprocal space.
     Y = nufftn(rf,[xf,yf,zf],fgrid);
     I = Y .* conj(Y); % Intensities of each scattering peak from FFT data
 
@@ -194,14 +204,15 @@ function scattering_plot(R,x,y,z,scatterers,options)
         fclose(writefile);
     end
 
-    % Next, additively combine peaks that occur at the same q. Also, create a
-    % dictionary called hkls_q, where hkls_q{i} is a matrix where each row 
-    % represents a family of planes that has a scattering peak at q(i).
-    % If two sets of planes {hkl} and {h'k'l'} give scattering peaks at q=q(i),
-    % then hkls_q{i} will be the following matrix: [h k l; h' k' l']. A plane
-    % (xyz) is a member of the family {hkl} if [x,y,z] is some permutation of 
-    % [h,k,l]. We need hkls_q in order to ensure that all families of planes
-    % with non-negligible scattering are indexed correctly on the plot.
+    % Next, additively combine peaks that occur at the same q. Also, create
+    % a dictionary called hkls_q, where hkls_q{i} is a matrix where each
+    % row represents a family of planes that has a scattering peak at q(i).
+    % If two sets of planes {hkl} and {h'k'l'} give scattering peaks at
+    % q=q(i), then hkls_q{i} will be the following matrix: [h k l; h' k'
+    % l']. A plane (xyz) is a member of the family {hkl} if [x,y,z] is some
+    % permutation of [h,k,l]. We need hkls_q in order to ensure that all
+    % families of planes with non-negligible scattering are indexed
+    % correctly on the plot.
     row = 0;
     hkls_q = cell(size(q,1));
     while row < size(q,1)
@@ -216,7 +227,8 @@ function scattering_plot(R,x,y,z,scatterers,options)
 
                 ismem = false;
                 for id = 1:size(hkls_q{row},1)
-                    if ismember(hkls(row2,:),perms(hkls_q{row}(id,:)),'rows')
+                    if ismember(hkls(row2,:),perms(hkls_q{row}(id,:)),...
+                                'rows')
                         ismem = true;
                         hkls_q{row}(id,:) = hkls(row2,:);
                         break
@@ -268,43 +280,47 @@ function scattering_plot(R,x,y,z,scatterers,options)
 
     else % x-axis is q
 
-        for row = 1:size(hkls,1) % Loop over each peak to plot it individually
+        for row = 1:size(hkls,1) % Loop over each peak to plot
             plot([q(row),q(row)],[I_min,I(row)],'k','linewidth',1)
 
-            % Create label for hkl indices for this peak, and put it on plot
+            % Create hkl label for this peak and put it on plot
             hkl_label = "";
             for id = 1:size(hkls_q{row},1)
                 if id == 1
                     hkl_label = strcat(hkl_label,"(",...
-                                       strjoin(string(hkls_q{row}(id,:)),""),")");
+                                strjoin(string(hkls_q{row}(id,:)),""),")");
                 else
                     hkl_label = strcat(hkl_label,", (",...
-                                       strjoin(string(hkls_q{row}(id,:)),""),")");
+                                strjoin(string(hkls_q{row}(id,:)),""),")");
                 end
             end
-            hkl = text(q(row),I(row)*1.05,hkl_label,'fontsize',16);
+            hkl = text(q(row),I(row)*1.05,hkl_label,...
+                       'fontsize',options.fontsize*0.9);
             set(hkl,"rotation",90)
 
         end
         
         % Make x-axis label, with or without units
-        if isfield(options,'units')
-            xlabel(strcat('q [',options.units,'^{-1}]'),'fontsize',22)
+        if options.units ~= ""
+            xlabel(strcat('q [',options.units,'^{-1}]'))
         else
-            xlabel('q','fontsize',22)
+            xlabel('q')
         end
         
     end
 
     % Make plot look good
-    ylabel("I(q)",'fontsize',22)
+    ylabel("I(q)")
     set(gca,'yscale','log'); 
-    set(gcf,'position',[300 300 1300 900]); 
+    pos = get(gcf,'position');
+    set(gcf,'position',[pos(1) pos(2) pos(3)*1.5 pos(4)*1.5]); 
     ylim([min(I)*0.5,max(I)*5]); 
     
     % Save figure if a filename is provided
     if options.savefile ~= ""
         saveas(gcf,options.savefile);
     end
+    
+    hold off;
 
 end

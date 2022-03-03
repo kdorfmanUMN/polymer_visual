@@ -302,7 +302,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store,fontsize)
 
 
         legend([legend_labels1 legend_labels2])
-        legend('Location','best')
+        legend('Location','northeastoutside')
         
         hold off;
     end

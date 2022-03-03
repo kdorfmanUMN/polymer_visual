@@ -101,6 +101,9 @@ function individual_profiles(R,x,y,z,options)
         
     end
     
+    % Ensure that the code below can access our utilities
+    addpath(pwd+"/utilities")
+    
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
@@ -167,7 +170,7 @@ function individual_profiles(R,x,y,z,options)
     if isfield(options,'mono_label')
         mono_label = options.mono_label;
     else
-        mono_label = char(1,3);
+        mono_label = char(1,n_mnr);
         for in = 1:n_mnr
             mono_label(in) = char('A'+in-1);
         end

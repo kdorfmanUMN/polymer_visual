@@ -1,6 +1,10 @@
 function polymer_visual(filename)
 
+    tic
     close all;
+    
+    % Ensure that the code below can access our utilities
+    addpath(pwd+"/utilities")
 
     phase = "C14"; % Leave as "" if you don't want voronoi partition shown on 
                 % 2D contour plot. Otherwise, specify phase name
@@ -9,11 +13,9 @@ function polymer_visual(filename)
     % Read in the rgrid file
     tic
     [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(filename);
-    basis = get_basis(cell_d,angle);
     
     % Other Inputs
     linedraw = true; % draw the isovalue plot
-    n_dp = 3; %Number of significant decimal places for color mapping
     
     inputvec = [0 0 1]; %Direction vector for 1-D density plot
 
@@ -34,10 +36,6 @@ function polymer_visual(filename)
     cb_ticks = 8; % # of ticks on colorbars
     n_digits = 3; % # of digits after the decimal point shown in cb ticklabels
 
-    drawscatter = []; %Block to simulate scattering through
-    h_set = 0:3; %Scattering indices
-    k_set = 0:1; %Scattering indices
-    l_set = 0:1; %Scattering indices
     mono_label = char(1,3);
     for in = 1:n_mnr
         mono_label(in) = char('A'+in-1);
@@ -83,77 +81,30 @@ function polymer_visual(filename)
                       "savefile",savefile)
 
     % Draw the scattering plot
-    [f_path,f_name,f_ext] = fileparts(savefile);
-    scat_savefile = fullfile(f_path,strcat(f_name,'_scat',f_ext));
+    if savefile ~= ""
+        [f_path,f_name,f_ext] = fileparts(savefile);
+        savefile_scat = fullfile(f_path,strcat(f_name,'_scat',f_ext));
+    else
+        savefile_scat = "";
+    end
     scattering_plot(R,x,y,z,scatterers,'fontsize',fontsize,'savefile',...
-                    scat_savefile,'theta_plot',false,'units',units,...
+                    savefile_scat,'theta_plot',false,'units',units,...
                     'writefile',writefile);
     
-    % The 1-D Density Line
-
-    if ~isempty(inputvec)
-
-        startloc = [0 0 0]; %Starting coordinates (normalized) for 1-D density plot
-
-        figure(); hold on
-        userinput = inputvec;
-
-        for i = 1:3
-            if inputvec(i) < 0
-                startloc(i) = startloc(i) + 1;
-            end
-        end
-
-        start_coord = startloc .* grid + [1 1 1];
-        %  end_coord = userinput .* grid + [1 1 1];
-        end_coord = start_coord + userinput .* grid;
-
-        dir_vec = end_coord-start_coord;
-        step_length = max(abs(dir_vec));
-        clear ix iy iz x_plot
-
-        for il = 1:step_length
-            ix(il) = start_coord(1)+ round((il-1)*(dir_vec(1)/step_length));
-            iy(il) = start_coord(2)+ round((il-1)*(dir_vec(2)/step_length));
-            iz(il) = start_coord(3)+ round((il-1)*(dir_vec(3)/step_length));
-            x_plot(il) = (il-1)/(step_length-1);
-            for in= 1:n_mnr
-                line_plot(in,il) = R(ix(il),iy(il),iz(il),in);
-
-            end
-        end
-
-        linemarkers(1) = {'s'};
-        linemarkers(2) = {'^'};
-        linemarkers(3) = {'o'};
-        linemarkers(4) = {'p'};
-        linemarkers(5) = {'+'};
-        linemarkers(6) = {'*'};
-        linemarkers(7) = {'d'};
-        
-        legend_labels3 = strings(1,n_mnr);
-        for in = 1:n_mnr
-            plot (x_plot,line_plot(in,:),'color',map_store{in}(1,:),...
-                  'marker',cell2mat(linemarkers(mod(in,3)+1)),...
-                  'markerfacecolor',map_store{in}(1,:),'markersize',5)
-            hold on
-            legend_labels3(in) = strcat(mono_label(in),' block');
-
-        end
-
-
-        title1 = strcat('Density Variation Along ','[',num2str(userinput),']');
-        title(title1)
-        xlabel('\fontsize{14}r/r\fontsize{14}_m_a_x')
-        ylabel('\fontsize{14}\Phi\fontsize{13}(r)')
-        %ylim([0 1])
-
-        legend(legend_labels3)
-        legend('Location','northeastoutside')
-
-        hold off
-
+    % Draw the 1-D Line Profile
+    if savefile ~= ""
+        savefile_1D = fullfile(f_path,strcat(f_name,'_1D',f_ext));
+    else
+        savefile_1D = "";
     end
+    direc = [1,1,1];
+    startloc = [0,0,0];
+    c = zeros(length(map_store),3);
+    for map=1:length(map_store)
+        c(map,:) = map_store{map}(1,:);
+    end
+    line_profile(R,direc,startloc,'savefile',savefile_1D,'fontsize',...
+                 fontsize,'mono_label',mono_label,'colors',c)
 
     % The 2-D Contour Plot
 

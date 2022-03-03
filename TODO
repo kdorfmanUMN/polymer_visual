@@ -1,6 +1,4 @@
-- Fix scattering
 - Fix voronoi
-- Fix 1D line profile
 - Make it so read_rgrid returns a basis instead of cell_d and angle
 - Add all name-value pairs to polymer_visual
 - Test and fix 2D functionality, including make_3d
