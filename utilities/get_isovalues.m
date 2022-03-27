@@ -1,10 +1,28 @@
 % Computing the isovalues
 
-function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store,fontsize)
+function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
 
-    if nargin < 5
-        linedraw = false;
+    arguments
+        R
+        dim
+        n_mnr
+        grid
+        options.linedraw = true;
+        options.colors = [0,   0.7, 0.9;   %blue
+                          0.9, 0,   0;     %red
+                          0,   0.9, 0.2;   %green
+                          1,   1,   0;     %yellow
+                          0.5, 0,   1;     %purple
+                          1,   0,   1;     %pink
+                          1,   0.5, 0;     %orange
+                          0.75,0.75,0.75]; %grey
+        options.fontsize = 14;
     end
+    
+    linedraw = options.linedraw;
+    colors = options.colors;
+    fontsize = options.fontsize;
+    clear options;
     
     weight = ones(1,n_mnr);
     gap_close = 1; %Toggle the white space closing feature (Default = 1)
@@ -273,7 +291,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store,fontsize)
         linestyles(2) = {':'};
         linestyles(3) = {'--'};
         for in = 1:n_mnr
-            plot (x_plot,line_new(in,:),'color',map_store{in}(1,:))
+            plot (x_plot,line_new(in,:),'color',colors(i,:))
         end
 
         clear yy
@@ -283,7 +301,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,linedraw,map_store,fontsize)
         end
 
         for in = 1:n_mnr
-            plot(x_plot,yy(in,:),'color',map_store{in}(1,:),...
+            plot(x_plot,yy(in,:),'color',colors(i,:),...
                  'LineWidth',1+n_mnr-in,'LineStyle',...
                  cell2mat(linestyles(mod(in,3)+1)))
         end

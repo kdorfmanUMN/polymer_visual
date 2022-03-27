@@ -191,7 +191,7 @@ function individual_profiles(R,x,y,z,options)
     if isfield(options,'isovalue')
         isovalue = options.isovalue;
     else
-        isovalue = get_isovalues(R,dim,n_mnr,grid,false,map);
+        isovalue = get_isovalues(R,dim,n_mnr,grid,'linedraw',false);
     end
     
     if isscalar(options.n_digits)

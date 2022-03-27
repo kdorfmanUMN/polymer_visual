@@ -178,7 +178,7 @@ function composite_profile(R,x,y,z,options)
     if isfield(options,'mono_label')
         mono_label = options.mono_label;
     else
-        mono_label = char(1,3);
+        mono_label = char(1,n_mnr);
         for in = 1:n_mnr
             mono_label(in) = char('A'+in-1);
         end
@@ -199,7 +199,7 @@ function composite_profile(R,x,y,z,options)
     if isfield(options,'isovalue')
         isovalue = options.isovalue;
     else
-        isovalue = get_isovalues(R,dim,n_mnr,grid,false,map);
+        isovalue = get_isovalues(R,dim,n_mnr,grid,'linedraw',false);
     end
     
     if isscalar(options.n_digits)
