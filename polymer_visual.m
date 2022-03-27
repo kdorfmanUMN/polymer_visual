@@ -240,7 +240,16 @@ function polymer_visual(filename,options)
 
     % Create the 2-D Contour Plot
     basis = get_basis(cell_d,angle);
-    
+    if options.savefile ~= ""
+        savefile_2D = fullfile(f_path,strcat(f_name,'_2D',f_ext));
+    else
+        savefile_2D = "";
+    end
+    contour_plot(R,contourvecs,basis,'savefile',savefile_2D,'fontsize',...
+                 options.fontsize,'mono_label',options.mono_label,'map',...
+                 options.map,'isovalue',options.isovalue,'cb_ticks',...
+                 options.cb_ticks,'cb_rows',options.cb_rows,'n_digits',...
+                 options.n_digits,'phase',options.phase);
 
     toc
 

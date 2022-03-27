@@ -453,7 +453,7 @@ function composite_profile(R,x,y,z,options)
                     "ZTick",[],"InnerPosition",ax_pos);
 
                 % Assign the appropriate colormap to this axes object
-                colormap(ax(in),cell2mat(map(in)));
+                colormap(ax(in),map{in});
 
                 % Create the colorbar
                 cb = colorbar(ax(in));
@@ -484,13 +484,12 @@ function composite_profile(R,x,y,z,options)
     end
     
     % Update figure size to show everything we want to show
+    set(gcf,'Units','Points');
     fig_pos = get(gcf,'position');
     fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
     % Make figure taller to fit cb titles
     fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
     set(gcf,'position',fig_pos);
-    
-    %drawnow();
     
     % Save figure if a filename is provided
     if savefile ~= ""

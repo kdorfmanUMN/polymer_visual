@@ -94,8 +94,7 @@ function contour_plot(R,contourvecs,basis,options)
     
     savefile = options.savefile;     fontsize = options.fontsize;
     mono_label = options.mono_label; cb_ticks = options.cb_ticks;
-    cb_rows = options.cb_rows;       n_digits = options.n_digits;
-    phase = options.phase;           
+    cb_rows = options.cb_rows;       phase = options.phase;           
 
     % Ensure that the code below can access our utilities
     addpath(pwd+"/utilities")
@@ -125,32 +124,15 @@ function contour_plot(R,contourvecs,basis,options)
         grid = size(R); grid = grid(1:size(basis,2));
         dim = length(grid);
         
-        % Define grid, basis, and n_mnr (defined differently in 2D vs 3D)
+        % Define grid and n_mnr (defined differently in 2D vs 3D)
         if dim == 3
             grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
             n_mnr = size(R,4);
-            basis = [x(end,1,1),y(end,1,1),z(end,1,1);
-                     x(1,end,1),y(1,end,1),z(1,end,1);
-                     x(1,1,end),y(1,1,end),z(1,1,end);];
         elseif dim == 2
             n_mnr = size(R,3);
-            basis = [x(end,1), y(end,1); x(1,end), y(1,end)];
-            if options.make_3d
-                grid = [size(R,1)-1,size(R,2)-1,10];
-                
-                % use the make_3d function to expand the 2D data into a
-                % third dimension with z-height equal to the average length
-                % of the two lattice basis vectors
-                height = (norm(basis(1,:)) + norm(basis(2,:))) / 2;
-                [R,x,y,z] = make_3d(R,x,y,height);
-                basis = [basis(1,1), basis(1,2), 0;
-                         basis(2,1), basis(2,2), 0;
-                         0,          0,          height];
-            else
-                grid = [size(R,1)-1,size(R,2)-1];
-            end
+            grid = [size(R,1)-1,size(R,2)-1];
         else
-            error("x array should be either 2 or 3 dimensions")
+            error('dim should be 2 or 3')
         end
         
     end
@@ -165,6 +147,15 @@ function contour_plot(R,contourvecs,basis,options)
         isovalue = options.isovalue;
     else
         isovalue = get_isovalues(R,dim,n_mnr,grid,'linedraw',false);
+    end
+    
+    if isscalar(options.n_digits)
+        n_digits = ones(1,n_mnr) * options.n_digits;
+    else
+        if length(options.n_digits) ~= n_mnr
+            error('n_digits must be a scalar or an array of length n_mnr')
+        end
+        n_digits = options.n_digits;
     end
 
     clear options;
@@ -188,7 +179,7 @@ function contour_plot(R,contourvecs,basis,options)
     end
     cos_theta = dot(xvec_orth,yvec_orth)/(norm(xvec_orth)*norm(yvec_orth));
     theta = acos(cos_theta); % angle between xvec and yvec in radians
-
+    disp(xvec_orth); disp(yvec_orth); disp(theta);
     % Convert vectors to grid coordinates
     start_coord = startloc .* grid + [1 1 1];
     if ~isequal(start_coord,round(start_coord,0))
@@ -201,8 +192,8 @@ function contour_plot(R,contourvecs,basis,options)
     yvec_coord = yvec .* grid;
     x_step_length = max(abs(xvec_coord));
     y_step_length = max(abs(yvec_coord));
-    x_init = linspace(0,norm(xvec),x_step_length);
-    y_init = linspace(0,norm(yvec),y_step_length);
+    x_init = linspace(0,norm(xvec_orth),x_step_length);
+    y_init = linspace(0,norm(yvec_orth),y_step_length);
 
     % Find gridpoints & their data vals in the plane of the contour plot
     contour_data = zeros(y_step_length,x_step_length,n_mnr);
@@ -262,41 +253,111 @@ function contour_plot(R,contourvecs,basis,options)
 
     
     % Make contour plot
-    cblabel2 = zeros(n_mnr,50); 
-    cblabel3 = zeros(n_mnr,cb_ticks);
-    
     figure(); hold on; 
     
     for in = 1:n_mnr
-        cblabel2(in,:) = round(linspace(isovalue(in),max_comps(in),50),3);
-        cblabel3(in,:) = round(linspace(isovalue(in),max_comps(in),...
-                               cb_ticks),3);
-
+        
+        contour_colors = linspace(isovalue(in),max_comps(in),50);
+        cblabel = linspace(isovalue(in),max_comps(in),cb_ticks);
+        tick_format = strcat('%.',string(n_digits(in)),'f');
+        cblabel = compose(tick_format,cblabel');
+        ticks = round(linspace(isovalue(in),max_comps(in),cb_ticks),3);
+        
         if in == 1
             ax(in) = gca;
         else
             ax(in) = axes;
         end
+        set(gca,'fontsize',fontsize)
 
-        contourf(xcontour,ycontour,contour_data(:,:,in),cblabel2(in,:),'linecolor','none')
+        contourf(xcontour,ycontour,contour_data(:,:,in),contour_colors,...
+                 'linecolor','none')
         colormap(gca,map{in})
-        %cb(in) = colorbar(gca);
-        %set(cb(in),'ytick',cblabel3(in,:),'Yticklabel',cblabel3(in,:))
-        %caxis([min(cblabel3(in,:)),max(cblabel3(in,:))])
-        %title1 = strcat('\phi','_',mono_label(in));
-        %title(cb(in),title1,'fontsize',20)
+        cb(in) = colorbar(gca);
+        set(cb(in),'ytick',ticks,'Yticklabel',cblabel)
+        caxis([min(ticks),max(ticks)])
+        title1 = strcat('\phi','_',mono_label(in));
+        title(cb(in),title1,'fontsize',fontsize*1.1)
 
         set(ax(in),'Visible','off');
-        %daspect([1 1 1])
+        daspect([1 1 1])
+        if in==1
+            pb = pbaspect;
+            ax_pos = [72.8,46.2,342.3*pb(1)/pb(2),342.3];
+        end
+        set(gca,'units','points','position',ax_pos);
+    end
+    
+    % Set up for the case of multiple rows of colorbars
+    ncol = ceil(n_mnr/cb_rows);
+    if cb_rows > 1 % If we need to calculate positions of multiple cb rows
+        
+        % See how tall the colorbar title is
+        title1 = strcat('\phi','_',mono_label(1));
+        tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot the text
+        set(tmp,"Units","Points");
+        txt_height = get(tmp,"Extent"); % Find height of the text box
+        txt_height = txt_height(4);
+        delete(tmp) % Delete the temporary text we plotted
+        
+        % Get variables needed to determine colorbar positions
+        title_h = txt_height * 1.3 + 10; % Space allocated for cb titles
+        total_h = ax_pos(4); % Total height of each column
+        top_pos = ax_pos(4)+ax_pos(2); % coordinate of top edge of column
+        cb_space = total_h - (title_h * (cb_rows-1)); 
+        rows = 1:cb_rows;
+        
+        % construct cb_y, a list of the y-coordinates of the colorbars in
+        % each row. cb_y(r) is the y-coord of the colorbar in row r.
+        cb_h = cb_space / cb_rows; % height of all colorbars
+        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); 
+        
+    else % Only 1 colorbar row, use default height
+        
+        cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
+        cb_h = ax_pos(4); % height of each colorbar
         
     end
-    %set(gcf,'position',[100 100 1200 600]) % 1625 is good on long axis for hexagonal plots
+    
+    cb_x = ax_pos(1)+ax_pos(3)+40; 
+    
+    for col = 1:ncol
+        txt_width = 0;
+        for row = 1:cb_rows
+            % Monomer index for this row/column
+            in = (row-1)*ncol + col; 
+            if in <= n_mnr % If this column/row should contain a colorbar:
+
+                % Create the colorbar
+                cb_pos = [cb_x,cb_y(row),22,cb_h];
+                set(cb(in),"axislocation","out","Units","Points",...
+                    "ytick",ticks,"ticklabels",cblabel,...
+                    "fontsize",fontsize,"Position",cb_pos,"color","k");
+                
+                % Estimate the width of our ticklabels, and if it is larger
+                % than txt_width then update txt_width
+                [~,ind] = max(strlength(cblabel)); %Find longest ticklabel
+                tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
+                set(tmp,"Units","Points");
+                txt_extent = get(tmp,"Extent"); % Find width of the text
+                if txt_extent(3) > txt_width % Update txt_width if needed
+                    txt_width = txt_extent(3);
+                end
+                delete(tmp) % Delete the temporary text we plotted
+                
+            end
+        end
+        
+        % Update colorbar x-position for the next row
+        cb_x = cb_x + 22 + txt_width + 20; 
+        
+    end
     
     if phase ~= "" % If phase is specified, draw voronoi partition
         
         % Find voronoi cells and boundaries for this crystal
         % structure (all in terms of miller indices!)
-        [v,c] = get_voronoi(cell_d,angle,phase);
+        [v,c] = get_voronoi(basis,phase);
         n_voro = length(c);
         
         % find lines of voronoi cells intersecting with the plotting plane
@@ -319,7 +380,20 @@ function contour_plot(R,contourvecs,basis,options)
         end
         
     end
-
+    
+    % Update figure size to show everything we want to show
+    set(gcf,'Units','Points');
+    fig_pos = get(gcf,'position');
+    fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
+    % Make figure taller to fit cb titles
+    fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
+    set(gcf,'position',fig_pos);
+    
+    % Save figure if a filename is provided
+    if savefile ~= ""
+        saveas(gcf,savefile);
+    end
+    
     hold off
 
 end
