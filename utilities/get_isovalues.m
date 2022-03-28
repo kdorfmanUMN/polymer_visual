@@ -7,7 +7,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
         dim
         n_mnr
         grid
-        options.linedraw = true;
+        options.plot = false;
         options.colors = [0,   0.7, 0.9;   %blue
                           0.9, 0,   0;     %red
                           0,   0.9, 0.2;   %green
@@ -19,7 +19,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
         options.fontsize = 14;
     end
     
-    linedraw = options.linedraw;
+    makeplot = options.plot;
     colors = options.colors;
     fontsize = options.fontsize;
     clear options;
@@ -282,7 +282,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
     end
     
     % Plotting the rescaled volume fractions and isovalues if desired
-    if linedraw
+    if makeplot
         figure(); 
         hold on;
         set(gca,'fontsize',fontsize)
@@ -291,7 +291,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
         linestyles(2) = {':'};
         linestyles(3) = {'--'};
         for in = 1:n_mnr
-            plot (x_plot,line_new(in,:),'color',colors(i,:))
+            plot(x_plot,line_new(in,:),'color',colors(in,:))
         end
 
         clear yy
@@ -301,7 +301,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
         end
 
         for in = 1:n_mnr
-            plot(x_plot,yy(in,:),'color',colors(i,:),...
+            plot(x_plot,yy(in,:),'color',colors(in,:),...
                  'LineWidth',1+n_mnr-in,'LineStyle',...
                  cell2mat(linestyles(mod(in,3)+1)))
         end
@@ -320,7 +320,7 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
 
 
         legend([legend_labels1 legend_labels2])
-        legend('Location','northeastoutside')
+        legend('Location','best')
         
         hold off;
     end

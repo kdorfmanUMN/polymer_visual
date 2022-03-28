@@ -146,7 +146,7 @@ function contour_plot(R,contourvecs,basis,options)
     if isfield(options,'isovalue')
         isovalue = options.isovalue;
     else
-        isovalue = get_isovalues(R,dim,n_mnr,grid,'linedraw',false);
+        isovalue = get_isovalues(R,dim,n_mnr,grid,'plot',false);
     end
     
     if isscalar(options.n_digits)
@@ -179,7 +179,7 @@ function contour_plot(R,contourvecs,basis,options)
     end
     cos_theta = dot(xvec_orth,yvec_orth)/(norm(xvec_orth)*norm(yvec_orth));
     theta = acos(cos_theta); % angle between xvec and yvec in radians
-    disp(xvec_orth); disp(yvec_orth); disp(theta);
+    
     % Convert vectors to grid coordinates
     start_coord = startloc .* grid + [1 1 1];
     if ~isequal(start_coord,round(start_coord,0))
@@ -217,13 +217,15 @@ function contour_plot(R,contourvecs,basis,options)
                       (yval-1)*(yvec_coord(3)/y_step_length);
             z_coord = fit_in_cell(z_coord,grid(3));
 
-            if isequal(round([x_coord y_coord z_coord],2),round([x_coord y_coord z_coord],0))
-                contour_data(yval,xval,1:n_mnr) = R(x_coord,y_coord,z_coord,1:n_mnr);
+            if isequal(round([x_coord y_coord z_coord],2),...
+                       round([x_coord y_coord z_coord],0))
+                contour_data(yval,xval,1:n_mnr) = R(x_coord,y_coord,...
+                                                    z_coord,1:n_mnr);
             else
                 contour_data(yval,xval,1:n_mnr) = nan;
             end
 
-            xcontour(yval,xval) = x_init(xval) + (y_init(yval).*cos(theta));
+            xcontour(yval,xval) = x_init(xval)+(y_init(yval).*cos(theta));
             ycontour(yval,xval) = y_init(yval).*sin(theta);
         end
     end
@@ -233,13 +235,15 @@ function contour_plot(R,contourvecs,basis,options)
     xvals_to_delete = [];
     yvals_to_delete = [];
     for xval = 1:x_step_length
-        if isequal(isnan(contour_data(:,xval,1)),ones(size(contour_data(:,xval,1))))
+        if isequal(isnan(contour_data(:,xval,1)),...
+                   ones(size(contour_data(:,xval,1))))
             xvals_to_delete(end+1) = xval; %#ok<*AGROW> 
         end
     end
 
     for yval = 1:y_step_length
-        if isequal(isnan(contour_data(yval,:,1)),ones(size(contour_data(yval,:,1))))
+        if isequal(isnan(contour_data(yval,:,1)),...
+                   ones(size(contour_data(yval,:,1))))
             yvals_to_delete(end+1) = yval;
         end
     end
@@ -261,7 +265,7 @@ function contour_plot(R,contourvecs,basis,options)
         cblabel = linspace(isovalue(in),max_comps(in),cb_ticks);
         tick_format = strcat('%.',string(n_digits(in)),'f');
         cblabel = compose(tick_format,cblabel');
-        ticks = round(linspace(isovalue(in),max_comps(in),cb_ticks),3);
+        ticks = linspace(isovalue(in),max_comps(in),cb_ticks);
         
         if in == 1
             ax(in) = gca;
@@ -275,7 +279,7 @@ function contour_plot(R,contourvecs,basis,options)
         colormap(gca,map{in})
         cb(in) = colorbar(gca);
         set(cb(in),'ytick',ticks,'Yticklabel',cblabel)
-        caxis([min(ticks),max(ticks)])
+        caxis(ax(in),[isovalue(in),max_comps(in)])
         title1 = strcat('\phi','_',mono_label(in));
         title(cb(in),title1,'fontsize',fontsize*1.1)
 
@@ -331,7 +335,6 @@ function contour_plot(R,contourvecs,basis,options)
                 % Create the colorbar
                 cb_pos = [cb_x,cb_y(row),22,cb_h];
                 set(cb(in),"axislocation","out","Units","Points",...
-                    "ytick",ticks,"ticklabels",cblabel,...
                     "fontsize",fontsize,"Position",cb_pos,"color","k");
                 
                 % Estimate the width of our ticklabels, and if it is larger
@@ -355,6 +358,8 @@ function contour_plot(R,contourvecs,basis,options)
     
     if phase ~= "" % If phase is specified, draw voronoi partition
         
+        xlims = xlim; ylims = ylim;
+        
         % Find voronoi cells and boundaries for this crystal
         % structure (all in terms of miller indices!)
         [v,c] = get_voronoi(basis,phase);
@@ -372,11 +377,12 @@ function contour_plot(R,contourvecs,basis,options)
             if isempty(P)
                 continue
             end
-            % find linear combination of plane vectors required to get to these
-            % points
+            % find linear combination of plane vectors required to get to 
+            % these points
             rescaled = ([xvec; yvec]'\P')';
             k = convhull(rescaled);
             plot(rescaled(k,1),rescaled(k,2),'k-','linewidth',2)
+            xlim(xlims); ylim(ylims);
         end
         
     end
