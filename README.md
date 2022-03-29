@@ -1,1 +1,0 @@
-# polymer_visual
