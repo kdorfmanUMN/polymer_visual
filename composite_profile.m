@@ -49,6 +49,12 @@ function composite_profile(R,x,y,z,options)
         % for species i. If left empty (which is the default behavior), the
         % figures are not saved.
         options.savefile = "";
+        
+        % species is an array that contains the indices for each monomer
+        % species to plot. So, if the data set contains 4 species but only
+        % the first and third should be plotted, species = [1,3]. The
+        % default behavior is to plot all species.
+        options.species;
 
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 14.
@@ -87,9 +93,6 @@ function composite_profile(R,x,y,z,options)
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
         
-        % make_3d is a boolean. If true, it will plot a 2D dataset in 3D.
-        options.make_3d = false;
-
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
         
@@ -143,38 +146,24 @@ function composite_profile(R,x,y,z,options)
         
         dim = ndims(x);
         
-        % Define grid, basis, and n_mnr (defined differently in 2D vs 3D)
-        if dim == 3
-            grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
-            n_mnr = size(R,4);
-            basis = [x(end,1,1),y(end,1,1),z(end,1,1);
-                     x(1,end,1),y(1,end,1),z(1,end,1);
-                     x(1,1,end),y(1,1,end),z(1,1,end);];
-        elseif dim == 2
-            n_mnr = size(R,3);
-            basis = [x(end,1), y(end,1); x(1,end), y(1,end)];
-            if options.make_3d
-                grid = [size(R,1)-1,size(R,2)-1,10];
-                
-                % use the make_3d function to expand the 2D data into a
-                % third dimension with z-height equal to the average length
-                % of the two lattice basis vectors
-                height = (norm(basis(1,:)) + norm(basis(2,:))) / 2;
-                [R,x,y,z] = make_3d(R,x,y,height);
-                basis = [basis(1,1), basis(1,2), 0;
-                         basis(2,1), basis(2,2), 0;
-                         0,          0,          height];
-            else
-                grid = [size(R,1)-1,size(R,2)-1];
-            end
-        else
-            error("x array should be either 2 or 3 dimensions")
-        end
+        % Define grid, basis, and n_mnr
+        grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
+        n_mnr = size(R,4);
+        basis = [x(end,1,1),y(end,1,1),z(end,1,1);
+                 x(1,end,1),y(1,end,1),z(1,end,1);
+                 x(1,1,end),y(1,1,end),z(1,1,end);];
         
     end
     
     % Get other parameters needed for composition profiles, using
     % default values if they are not provided as name-value inputs:
+    if isfield(options,'species')
+        n_mnr = length(options.species); % override n_mnr defined above
+        species = options.species;
+    else
+        species = 1:n_mnr;
+    end
+    
     if isfield(options,'mono_label')
         mono_label = options.mono_label;
     else
@@ -243,7 +232,7 @@ function composite_profile(R,x,y,z,options)
     zero_val = 0;
     
     % Loop over each species to plot
-    for in = 1:n_mnr
+    for in = species
         
         % MATLAB only allows one colormap per axis, and we want to plot all
         % of our data (each with its own colormap) on the same axis. Thus,

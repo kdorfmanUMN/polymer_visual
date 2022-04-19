@@ -41,8 +41,14 @@ function [R,x,y,z,dim,lattype,cell_d,angles,n_mnr,grid] = read_rgrid(filename)
         end
     end
     
-    end_info = start_row - 1;                % Records the row in which the supplementary information ends
+    end_info = start_row - 1; % Records the row in which the supplementary information ends
                      
+    if(length(grid)==1) % 3D grid for 1D crystals
+        grid(2) = grid(1);
+        grid(3) = grid(1);
+    elseif(length(grid)==2) % 3D grid for 2D crystals
+        grid(3) = grid(1);
+    end
     
     % Reading the Grid Points From the File, but not in grid fashion yet..
     
