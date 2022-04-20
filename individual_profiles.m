@@ -56,6 +56,16 @@ function individual_profiles(R,x,y,z,options)
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
         options.hex3 = false
+
+        % light is a boolean indicating whether to insert a "light" object
+        % into the plot (adds shadows that can make 3d structure clearer,
+        % but invalidates the accuracy of the colorbar).
+        options.light = false;
+
+        % If hide_axes is set to true, the plot will not contain the tick 
+        % marks, title, etc. by setting the "visible" property of the axes
+        % to "off".
+        options.hide_axes = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One for each species. If not specified,
@@ -185,6 +195,8 @@ function individual_profiles(R,x,y,z,options)
     cb_ticks = options.cb_ticks;
     savefile = options.savefile;
     fontsize = options.fontsize;
+    light_on = options.light;
+    hide_axes = options.hide_axes;
     clear options
     
     %% Create the composition profile for each species
@@ -364,6 +376,16 @@ function individual_profiles(R,x,y,z,options)
             fig_pos(4) = fig_pos(4) + (fontsize*1.1);
             set(gcf,'position',fig_pos);
             
+        end
+
+        % Add light if desired
+        if light_on
+            light('position',[-1 -1 1]);
+        end
+    
+        % Hide axes if desired
+        if hide_axes
+            set(gca,'visible','off')
         end
         
         % Save figure if a filename is provided

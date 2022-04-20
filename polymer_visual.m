@@ -31,6 +31,16 @@ function polymer_visual(filename,options)
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1.
         options.hex3 = false
+
+        % light is a boolean indicating whether to insert a "light" object
+        % into the plot (adds shadows that can make 3d structure clearer,
+        % but invalidates the accuracy of the colorbar).
+        options.light = false;
+
+        % If hide_axes is set to true, the plot will not contain the tick 
+        % marks, title, etc. by setting the "visible" property of the axes
+        % to "off".
+        options.hide_axes = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One value for each species. If not
@@ -209,7 +219,9 @@ function polymer_visual(filename,options)
                         "thick",options.thick,"box_color",...
                         options.box_color,"n_digits",options.n_digits,...
                         "cb_ticks",options.cb_ticks,"fontsize",...
-                        options.fontsize,"savefile",options.savefile);
+                        options.fontsize,"savefile",options.savefile, ...
+                        "light",options.light,"hide_axes",...
+                        options.hide_axes);
 
     % Draw the Composite Density Profile
     composite_profile(R,x,y,z,"isovalue",options.isovalue,"map",...
@@ -220,7 +232,8 @@ function polymer_visual(filename,options)
                       "cb_ticks",options.cb_ticks,"fontsize",...
                       options.fontsize,"savefile",options.savefile,...
                       "n_digits",options.n_digits,"cb_rows",...
-                      options.cb_rows);
+                      options.cb_rows,"light",options.light,"hide_axes",...
+                      options.hide_axes);
 
     % Draw the scattering plot
     if options.savefile ~= ""

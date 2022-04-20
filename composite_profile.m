@@ -62,7 +62,17 @@ function composite_profile(R,x,y,z,options)
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
-        options.hex3 = false
+        options.hex3 = false;
+
+        % light is a boolean indicating whether to insert a "light" object
+        % into the plot (adds shadows that can make 3d structure clearer,
+        % but invalidates the accuracy of the colorbar).
+        options.light = false;
+
+        % If hide_axes is set to true, the plot will not contain the tick 
+        % marks, title, etc. by setting the "visible" property of the axes
+        % to "off".
+        options.hide_axes = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One for each species. If not specified,
@@ -158,7 +168,6 @@ function composite_profile(R,x,y,z,options)
     % Get other parameters needed for composition profiles, using
     % default values if they are not provided as name-value inputs:
     if isfield(options,'species')
-        n_mnr = length(options.species); % override n_mnr defined above
         species = options.species;
     else
         species = 1:n_mnr;
@@ -207,6 +216,8 @@ function composite_profile(R,x,y,z,options)
     savefile = options.savefile;
     fontsize = options.fontsize;
     cb_rows = options.cb_rows;
+    light_on = options.light;
+    hide_axes = options.hide_axes;
     clear options
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -232,7 +243,7 @@ function composite_profile(R,x,y,z,options)
     zero_val = 0;
     
     % Loop over each species to plot
-    for in = species
+    for in = 1:n_mnr
         
         % MATLAB only allows one colormap per axis, and we want to plot all
         % of our data (each with its own colormap) on the same axis. Thus,
@@ -261,12 +272,14 @@ function composite_profile(R,x,y,z,options)
         zero_val = zero_val + cmap_size;
         
         % Plot rescaled data for this species
-        patch(isosurface(x,y,z,D(:,:,:,in),newisovalue(in)), ...
-              'FaceColor',map{in}(1,:),'EdgeColor','none',...
-              'FaceAlpha',opacity(1,in));
-        patch(isocaps(x,y,z,D(:,:,:,in),newisovalue(in)), ...
-              'FaceColor','interp','EdgeColor','none',...
-              'FaceAlpha',opacity(2,in));
+        if ismember(in,species)
+            patch(isosurface(x,y,z,D(:,:,:,in),newisovalue(in)), ...
+                  'FaceColor',map{in}(1,:),'EdgeColor','none',...
+                  'FaceAlpha',opacity(1,in));
+            patch(isocaps(x,y,z,D(:,:,:,in),newisovalue(in)), ...
+                  'FaceColor','interp','EdgeColor','none',...
+                  'FaceAlpha',opacity(2,in));
+        end
         
         % Set view angle
         if dim == 3
@@ -383,7 +396,8 @@ function composite_profile(R,x,y,z,options)
                 % axes leftward
     
     % Set up for the case of multiple rows of colorbars
-    ncol = ceil(n_mnr/cb_rows);
+    n_cbars = length(species);
+    ncol = ceil(n_cbars/cb_rows);
     if cb_rows > 1 % If we need to calculate positions of multiple cb rows
         
         % See how tall the colorbar title is
@@ -408,7 +422,7 @@ function composite_profile(R,x,y,z,options)
         
     else % Only 1 colorbar row, use default height
         
-        cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
+        cb_y = ones(n_cbars,1) * ax_pos(2); % y coord of each colorbar
         cb_h = ax_pos(4); % height of each colorbar
         
     end
@@ -421,11 +435,15 @@ function composite_profile(R,x,y,z,options)
         txt_width = 0; % variable to help us set colorbar locations
         for row = 1:cb_rows
             
-            % Monomer index for this row/column
-            in = (row-1)*ncol + col; 
+            % Colorbar position number (left to right, top to bottom)
+            pos = (row-1)*ncol + col; 
             
-            if in <= n_mnr % If this column/row should contain a colorbar:
+            % If this column/row should contain a colorbar:
+            if pos <= n_cbars
                 
+                % Monomer index for this row/column
+                in = species(pos);
+
                 % Colorbar data limits
                 cb_start = isovalue(in);
                 cb_end = max_comps(in);
@@ -479,6 +497,17 @@ function composite_profile(R,x,y,z,options)
     % Make figure taller to fit cb titles
     fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
     set(gcf,'position',fig_pos);
+    set(gcf,'currentaxes',ax(n_mnr+1))
+
+    % Add light if desired
+    if light_on
+        light('position',[-1 -1 1]);
+    end
+
+    % Hide axes if desired
+    if hide_axes
+        set(gca,'visible','off')
+    end
     
     % Save figure if a filename is provided
     if savefile ~= ""
@@ -487,7 +516,6 @@ function composite_profile(R,x,y,z,options)
     
     % Finish up
     rotate3d on
-    set(gcf,'currentaxes',ax(n_mnr+1))
     hold off
     
 end
