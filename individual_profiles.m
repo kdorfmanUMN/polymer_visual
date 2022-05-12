@@ -56,6 +56,16 @@ function individual_profiles(R,x,y,z,options)
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
         options.hex3 = false
+
+        % light is a boolean indicating whether to insert a "light" object
+        % into the plot (adds shadows that can make 3d structure clearer,
+        % but invalidates the accuracy of the colorbar).
+        options.light = false;
+
+        % If hide_axes is set to true, the plot will not contain the tick 
+        % marks, title, etc. by setting the "visible" property of the axes
+        % to "off".
+        options.hide_axes = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One for each species. If not specified,
@@ -85,9 +95,6 @@ function individual_profiles(R,x,y,z,options)
         % box_color is the value for "color" used to draw the outer box of
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
-        
-        % make_3d is a boolean. If true, it will plot a 2D dataset in 3D.
-        options.make_3d = false;
 
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -135,33 +142,12 @@ function individual_profiles(R,x,y,z,options)
         end
         
         dim = ndims(x);
-        % Define grid, basis, and n_mnr (defined differently in 2D vs 3D)
-        if dim == 3
-            grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
-            n_mnr = size(R,4);
-            basis = [x(end,1,1),y(end,1,1),z(end,1,1);
-                     x(1,end,1),y(1,end,1),z(1,end,1);
-                     x(1,1,end),y(1,1,end),z(1,1,end);];
-        elseif dim == 2
-            n_mnr = size(R,3);
-            basis = [x(end,1), y(end,1); x(1,end), y(1,end)];
-            if options.make_3d
-                grid = [size(R,1)-1,size(R,2)-1,10];
-                
-                % use the make_3d function to expand the 2D data into a
-                % third dimension with z-height equal to the average length
-                % of the two lattice basis vectors
-                height = (norm(basis(1,:)) + norm(basis(2,:))) / 2;
-                [R,x,y,z] = make_3d(R,x,y,height);
-                basis = [basis(1,1), basis(1,2), 0;
-                         basis(2,1), basis(2,2), 0;
-                         0,          0,          height];
-            else
-                grid = [size(R,1)-1,size(R,2)-1];
-            end
-        else
-            error("x array should be either 2 or 3 dimensions")
-        end
+        % Define grid, basis, and n_mnr
+        grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
+        n_mnr = size(R,4);
+        basis = [x(end,1,1),y(end,1,1),z(end,1,1);
+                 x(1,end,1),y(1,end,1),z(1,end,1);
+                 x(1,1,end),y(1,1,end),z(1,1,end);];
         
     end
     
@@ -209,6 +195,8 @@ function individual_profiles(R,x,y,z,options)
     cb_ticks = options.cb_ticks;
     savefile = options.savefile;
     fontsize = options.fontsize;
+    light_on = options.light;
+    hide_axes = options.hide_axes;
     clear options
     
     %% Create the composition profile for each species
@@ -388,6 +376,16 @@ function individual_profiles(R,x,y,z,options)
             fig_pos(4) = fig_pos(4) + (fontsize*1.1);
             set(gcf,'position',fig_pos);
             
+        end
+
+        % Add light if desired
+        if light_on
+            light('position',[-1 -1 1]);
+        end
+    
+        % Hide axes if desired
+        if hide_axes
+            set(gca,'visible','off')
         end
         
         % Save figure if a filename is provided

@@ -381,7 +381,7 @@ function contour_plot(R,contourvecs,basis,options)
             % these points
             rescaled = ([xvec; yvec]'\P')';
             k = convhull(rescaled);
-            plot(rescaled(k,1),rescaled(k,2),'k-','linewidth',2)
+            plot(rescaled(k,1)*norm(xvec),rescaled(k,2)*norm(yvec),'k-','linewidth',2)
             xlim(xlims); ylim(ylims);
         end
         

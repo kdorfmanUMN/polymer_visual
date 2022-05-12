@@ -31,6 +31,16 @@ function polymer_visual(filename,options)
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1.
         options.hex3 = false
+
+        % light is a boolean indicating whether to insert a "light" object
+        % into the plot (adds shadows that can make 3d structure clearer,
+        % but invalidates the accuracy of the colorbar).
+        options.light = false;
+
+        % If hide_axes is set to true, the plot will not contain the tick 
+        % marks, title, etc. by setting the "visible" property of the axes
+        % to "off".
+        options.hide_axes = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One value for each species. If not
@@ -69,8 +79,12 @@ function polymer_visual(filename,options)
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
         
-        % make_3d is a boolean. If true, it will plot a 2D dataset in 3D.
-        options.make_3d = false;
+        % species is an array that contains the indices for each monomer
+        % species to plot on the composite density profile. So, if the data
+        % set contains 4 species but only the first and third should be
+        % plotted, species = [1,3]. The default behavior is to plot all
+        % species.
+        options.species;
 
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -165,6 +179,10 @@ function polymer_visual(filename,options)
 
     % Get other parameters needed for composition profiles, using
     % default values if they are not provided as name-value inputs:
+    if ~isfield(options,'species')
+        options.species = 1:n_mnr;
+    end
+    
     if ~isfield(options,'mono_label')
         options.mono_label = char(1,n_mnr);
         for in = 1:n_mnr
@@ -199,21 +217,23 @@ function polymer_visual(filename,options)
                         options.map,"mono_label",options.mono_label,...
                         "opacity",options.opacity,"hex3",options.hex3,...
                         "thick",options.thick,"box_color",...
-                        options.box_color,"make_3d",options.make_3d,...
+                        options.box_color,"n_digits",options.n_digits,...
                         "cb_ticks",options.cb_ticks,"fontsize",...
-                        options.fontsize,"savefile",options.savefile,...
-                        "n_digits",options.n_digits);
+                        options.fontsize,"savefile",options.savefile, ...
+                        "light",options.light,"hide_axes",...
+                        options.hide_axes);
 
     % Draw the Composite Density Profile
     composite_profile(R,x,y,z,"isovalue",options.isovalue,"map",...
                       options.map,"mono_label",options.mono_label,...
                       "opacity",options.opacity,"hex3",options.hex3,...
                       "thick",options.thick,"box_color",...
-                      options.box_color,"make_3d",options.make_3d,...
+                      options.box_color,"species",options.species,...
                       "cb_ticks",options.cb_ticks,"fontsize",...
                       options.fontsize,"savefile",options.savefile,...
                       "n_digits",options.n_digits,"cb_rows",...
-                      options.cb_rows);
+                      options.cb_rows,"light",options.light,"hide_axes",...
+                      options.hide_axes);
 
     % Draw the scattering plot
     if options.savefile ~= ""
