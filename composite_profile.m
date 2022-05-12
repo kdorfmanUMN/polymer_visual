@@ -161,7 +161,7 @@ function composite_profile(R,x,y,z,options)
         n_mnr = size(R,4);
         basis = [x(end,1,1),y(end,1,1),z(end,1,1);
                  x(1,end,1),y(1,end,1),z(1,end,1);
-                 x(1,1,end),y(1,1,end),z(1,1,end);];
+                 x(1,1,end),y(1,1,end),z(1,1,end)];
         
     end
     
