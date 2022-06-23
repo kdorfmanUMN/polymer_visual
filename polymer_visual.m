@@ -152,8 +152,8 @@ function polymer_visual(filename,options)
         % contour plot. Default behavior is to create a contour plot of the
         % [1 -1 0] plane.
         options.contourvecs = [0 0 0; % Starting corner of contour plot
-                               1 0 0; % Direction of x-axis of contour plot
-                               0 1 0];% Direction of y-axis of contour plot
+                               1 1 0; % Direction of x-axis of contour plot
+                               0 0 1];% Direction of y-axis of contour plot
 
         % phase is a string containing the name of the phase being plotted.
         % This is used to plot the voronoi partition between particle
@@ -162,6 +162,22 @@ function polymer_visual(filename,options)
         % provided but does not match any in get_atomloc, an error will
         % occur. 
         options.phase = "";
+
+        % If your SCFT result is a thin film, you should include
+        % film_params as an input to apply a thin film correction.
+        %
+        % film_params is an array with 4 entries. The first 3 entries
+        % correspond to the 3 required parameters in pscfpp that are needed
+        % to define a Wall object: normalVec, interfaceThickness, and
+        % wallThickness. See pscfpp documentation for details about what
+        % each of these three parameters means. The fourth entry is a
+        % boolean (i.e. 0 for false, 1 for true) that indicates whether or
+        % not to rotate the figure to make the z axis orthogonal to the
+        % wall. If this film_params input is included, the code will apply
+        % a correction to the plot to make the figure look good as a thin
+        % film. If it is not included, it is assumed that the data being
+        % plotted are not under a thin film constraint.
+        options.film_params;
         
     end
     
@@ -206,9 +222,17 @@ function polymer_visual(filename,options)
     end
     
     if ~isfield(options,'isovalue')
-        options.isovalue = get_isovalues(R,dim,n_mnr,grid,'plot',...
-                           options.isovalue_plot,'colors',...
-                           options.colors,'fontsize',options.fontsize);
+        if n_mnr > 1
+            options.isovalue = get_isovalues(R,dim,n_mnr,grid,'plot',...
+                               options.isovalue_plot,'colors',...
+                               options.colors,'fontsize',options.fontsize);
+        else
+            options.isovalue = 0.5;
+        end
+    end
+
+    if ~isfield(options,'film_params')
+        options.film_params = [];
     end
     
     % Draw individual density profiles for each monomer species specified
@@ -221,7 +245,8 @@ function polymer_visual(filename,options)
                         "cb_ticks",options.cb_ticks,"fontsize",...
                         options.fontsize,"savefile",options.savefile, ...
                         "light",options.light,"hide_axes",...
-                        options.hide_axes);
+                        options.hide_axes,"film_params",...
+                        options.film_params);
 
     % Draw the Composite Density Profile
     composite_profile(R,x,y,z,"isovalue",options.isovalue,"map",...
@@ -233,7 +258,20 @@ function polymer_visual(filename,options)
                       options.fontsize,"savefile",options.savefile,...
                       "n_digits",options.n_digits,"cb_rows",...
                       options.cb_rows,"light",options.light,"hide_axes",...
-                      options.hide_axes);
+                      options.hide_axes,"film_params",options.film_params);
+
+    % Apply thin film correction if desired
+    %     (note: it is more convenient to apply the thin film correction
+    %     *inside* of composite_profile and individual_profiles, but more
+    %     convenient to apply it *before* calling the rest of the functions
+    %     below, which is why thin_film_correction is called here rather
+    %     than at the beginning).
+    basis = get_basis(cell_d,angle); % get lattice basis vectors
+    if isfield(options,'film_params') && ~isempty(options.film_params)
+        [R,x,y,z,~] = thin_film_correction(R,x,y,z,basis,...
+                          options.film_params(1),options.film_params(2),...
+                          options.film_params(3),options.film_params(4));
+    end
 
     % Draw the scattering plot
     if options.savefile ~= ""
