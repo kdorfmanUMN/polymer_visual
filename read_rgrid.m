@@ -111,16 +111,20 @@ function [x,y,z,cell_d,angle] = gen_xyz(lattype, param, grid)
     
     if strcmp(lattype,'hexagonal') == 1
         angle = [pi/2 pi/2 (2*pi)/3];
-        cell_d = param;
+        if dim == 3
+            cell_d = [param(1) param(1) param(2)];
+        else % assume dim == 2, param(2) does not exist
+            cell_d = [param(1) param(1) param(1)];
+        end
     elseif strcmp(lattype,'cubic') == 1
         angle = [pi/2 pi/2 pi/2];
-        cell_d = param;
+        cell_d = [param param param];
     elseif strcmp(lattype,'tetragonal') == 1
         angle = [pi/2 pi/2 pi/2];
-        cell_d = param;
+        cell_d = [param(1) param(1) param(2)];
     elseif strcmp(lattype,'orthorhombic') == 1
         angle = [pi/2 pi/2 pi/2];
-        cell_d = param;
+        cell_d = [param(1) param(2) param(3)];
     elseif strcmp(lattype,'triclinic') == 1
         angle = [param(4) param(5) param(6)];
         cell_d = [param(1) param(2) param(3)];
@@ -129,26 +133,25 @@ function [x,y,z,cell_d,angle] = gen_xyz(lattype, param, grid)
         cell_d = [param(1) param(2) param(3)];
     elseif strcmp(lattype,'trigonal') == 1
         angle = [param(2) param(2) param(2)];
-        cell_d = param(1);
+        cell_d = [param(1) param(1) param(1)];
+    elseif strcmp(lattype,'square') == 1
+        angle = [pi/2 pi/2 pi/2];
+        cell_d = [param(1) param(1) param(1)];
+    elseif strcmp(lattype,'rectangular') == 1
+        angle = [pi/2 pi/2 pi/2];
+        cell_d = [param(1) param(2) param(1)];
+    elseif strcmp(lattype,'oblique') == 1
+        angle = [pi/2 pi/2 param(3)];
+        cell_d = [param(1) param(2) param(1)];
+    elseif strcmp(lattype,'rhombic') == 1
+        angle = [pi/2 pi/2 param(2)];
+        cell_d = [param(1) param(1) param(1)];
     elseif strcmp(lattype,'lamellar') == 1
         angle = [pi/2 pi/2 pi/2];
-        cell_d = param;
+        cell_d = [param(1) param(1) param(1)];
     else
-        angle = [pi/2 pi/2 pi/2];
-        cell_d = param;
+        error("unknown crystal system")
     end
-    
-    % extract unit cell dimensions, such that there are 3 for each system
-    if(length(cell_d)==1)
-        new_cell(1:3) = cell_d;             % Cubic crystals
-    elseif(length(cell_d)==2)
-        new_cell(1:2) = cell_d(1);            % Tetragonal crystals
-        new_cell(3)   = cell_d(2);
-    else
-        new_cell = cell_d;                    % Orthorhombic crystals
-    end
-
-    clear cell_d; cell_d = new_cell;
 
     if(length(grid)==1)
         grid(2) = grid(1);                   % 3D grid for 1D crystals

@@ -118,6 +118,22 @@ function composite_profile(R,x,y,z,options)
         % if you want a different # of digits for each colorbar. Default is
         % 3.
         options.n_digits = 3;
+
+        % If your SCFT result is a thin film, you should include
+        % film_params as an input to apply a thin film correction.
+        %
+        % film_params is an array with 4 entries. The first 3 entries
+        % correspond to the 3 required parameters in pscfpp that are needed
+        % to define a Wall object: normalVec, interfaceThickness, and
+        % wallThickness. See pscfpp documentation for details about what
+        % each of these three parameters means. The fourth entry is a
+        % boolean (i.e. 0 for false, 1 for true) that indicates whether or
+        % not to rotate the figure to make the z axis orthogonal to the
+        % wall. If this film_params input is included, the code will apply
+        % a correction to the plot to make the figure look good as a thin
+        % film. If it is not included, it is assumed that the data being
+        % plotted are not under a thin film constraint.
+        options.film_params;
         
     end
     
@@ -162,7 +178,18 @@ function composite_profile(R,x,y,z,options)
         basis = [x(end,1,1),y(end,1,1),z(end,1,1);
                  x(1,end,1),y(1,end,1),z(1,end,1);
                  x(1,1,end),y(1,1,end),z(1,1,end)];
+<<<<<<< HEAD
+
+=======
+>>>>>>> d9fab217277fa4df863c4df6307a0bb831185bda
         
+    end
+
+    % Apply thin film correction if desired
+    if isfield(options,'film_params') && ~isempty(options.film_params)
+        [R,x,y,z,basis] = thin_film_correction(R,x,y,z,basis,...
+                          options.film_params(1),options.film_params(2),...
+                          options.film_params(3),options.film_params(4));
     end
     
     % Get other parameters needed for composition profiles, using
@@ -501,6 +528,7 @@ function composite_profile(R,x,y,z,options)
 
     % Add light if desired
     if light_on
+        light('position',[-1 -1 1]);
         light('position',[-1 -1 1]);
     end
 

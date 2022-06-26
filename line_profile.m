@@ -69,6 +69,27 @@ function line_profile(R,direc,startloc,options)
                           1,   0,   1;     %pink
                           1,   0.5, 0;     %orange
                           0.75,0.75,0.75]; %grey
+
+        % If your SCFT result is a thin film, you should include
+        % film_params as an input to apply a thin film correction.
+        %
+        % film_params is an array with 4 entries. The first 3 entries
+        % correspond to the 3 required parameters in pscfpp that are needed
+        % to define a Wall object: normalVec, interfaceThickness, and
+        % wallThickness. See pscfpp documentation for details about what
+        % each of these three parameters means. The fourth entry is a
+        % boolean (i.e. 0 for false, 1 for true) that indicates whether or
+        % not to rotate the figure to make the z axis orthogonal to the
+        % wall. If this film_params input is included, the code will apply
+        % a correction to the plot to make the figure look good as a thin
+        % film. If it is not included, it is assumed that the data being
+        % plotted are not under a thin film constraint.
+        %
+        % This input only affects the resulting plot if the input R is a
+        % filename, not a dataset. If R is a dataset, it is assumed that
+        % any desired corrections (e.g. the thin film correction) have
+        % already been applied.
+        options.film_params;
         
     end
     
@@ -82,7 +103,17 @@ function line_profile(R,direc,startloc,options)
         close all; % close other figures
                 
         % Read data from file
-        R = read_rgrid(R);
+        [R,x,y,z,~,~,cell_d,angle,~,~] = read_rgrid(R);
+
+        % Get lattice basis vectors
+        basis = get_basis(cell_d,angle);
+
+        % Apply thin film correction if desired
+        if isfield(options,'film_params') && ~isempty(options.film_params)
+            R = thin_film_correction(R,x,y,z,basis,...
+                          options.film_params(1),options.film_params(2),...
+                          options.film_params(3),options.film_params(4));
+        end
         
     end
     
