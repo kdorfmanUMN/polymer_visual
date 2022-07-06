@@ -125,8 +125,9 @@ function individual_profiles(R,x,y,z,options)
     end
     
     % Ensure that the code below can access our utilities
-    addpath(pwd+"/utilities")
-    
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")    
+
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         

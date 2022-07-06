@@ -118,8 +118,9 @@ function contour_plot(R,contourvecs,basis,options)
     cb_rows = options.cb_rows;       phase = options.phase;           
 
     % Ensure that the code below can access our utilities
-    addpath(pwd+"/utilities")
-    
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")
+
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         

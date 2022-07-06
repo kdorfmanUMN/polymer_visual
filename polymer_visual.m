@@ -185,7 +185,8 @@ function polymer_visual(filename,options)
     close all;
     
     % Ensure that the code below can access our utilities
-    addpath(pwd+"/utilities")
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")
 
     % Read in the rgrid file
     [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(filename);

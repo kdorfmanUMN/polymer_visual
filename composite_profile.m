@@ -138,7 +138,8 @@ function composite_profile(R,x,y,z,options)
     end
     
     % Ensure that the code below can access our utilities
-    addpath(pwd+"/utilities")
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")
     
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
@@ -178,10 +179,6 @@ function composite_profile(R,x,y,z,options)
         basis = [x(end,1,1),y(end,1,1),z(end,1,1);
                  x(1,end,1),y(1,end,1),z(1,end,1);
                  x(1,1,end),y(1,1,end),z(1,1,end)];
-<<<<<<< HEAD
-
-=======
->>>>>>> d9fab217277fa4df863c4df6307a0bb831185bda
         
     end
 
