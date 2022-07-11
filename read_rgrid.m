@@ -1,4 +1,4 @@
-function [R,x,y,z,dim,lattype,cell_d,angles,n_mnr,grid] = read_rgrid(filename)
+function [R,x,y,z,dim,lattype] = read_rgrid(filename)
 
     tmp = fopen(filename);
     C = textscan(tmp,'%s','delimiter', '\n');
@@ -61,7 +61,7 @@ function [R,x,y,z,dim,lattype,cell_d,angles,n_mnr,grid] = read_rgrid(filename)
     
     % Get x,y,z grid points and unit cell parameters
     
-    [x,y,z,cell_d,angles] = gen_xyz(lattype,param,grid);
+    [x,y,z,basis] = gen_xyz(lattype,param,grid);
     
     % place points from A on grid, for each monomer. Finally. R is a 4D array.
     % 3D are for the x,y,z grid. The 4th D is for the monomer type.
@@ -105,7 +105,7 @@ function R = rearrangePts(A, grid, dim)
     end
 end
 
-function [x,y,z,cell_d,angle] = gen_xyz(lattype, param, grid)
+function [x,y,z,basis] = gen_xyz(lattype, param, grid)
 
     % get crystal system dimensions and angles
     

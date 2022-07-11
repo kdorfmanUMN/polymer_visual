@@ -1,12 +1,10 @@
 % Computing the isovalues
 
-function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
+function isovalue = get_isovalues(R,dim,options)
 
     arguments
         R
         dim
-        n_mnr
-        grid
         options.plot = false;
         options.colors = [0,   0.7, 0.9;   %blue
                           0.9, 0,   0;     %red
@@ -18,6 +16,10 @@ function isovalue = get_isovalues(R,dim,n_mnr,grid,options)
                           0.75,0.75,0.75]; %grey
         options.fontsize = 14;
     end
+
+    grid = size(R,1:3) - 1; % Note: grid is always 3D even for dim < 3, as 
+                            % defined by the function read_rgrid.m
+    n_mnr = size(R,4);
     
     makeplot = options.plot;
     colors = options.colors;

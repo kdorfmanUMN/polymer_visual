@@ -37,6 +37,17 @@ function polymer_visual(filename,options)
         % but invalidates the accuracy of the colorbar).
         options.light = false;
 
+        % view is a 1, 2, or 3-element vector that specifies the viewing
+        % angle of the 3D density profiles. If this is included, we call 
+        % view(options.view) to set the viewing angle, so options.view must
+        % be something that complies with the view() function. If view = 2
+        % or view = 3, the view will be the default 2D or 3D view,
+        % respectively. If view is a 2-element vector, the two elements
+        % correspond to the azimuth and elevation angles, respectively. If
+        % view is a 3-element vector, the values represent a vector that
+        % points from the origin to the viewer. 
+        options.view = 3;
+
         % If hide_axes is set to true, the plot will not contain the tick 
         % marks, title, etc. by setting the "visible" property of the axes
         % to "off".
@@ -104,7 +115,7 @@ function polymer_visual(filename,options)
 
         % isovalue_plot is a boolean. If true, will construct an isovalue
         % plot (assuming isovalues are not provided), otherwise will not.
-        options.isovalue_plot = true;
+        options.isovalue_plot = false;
 
         % scatterers is a list containing the indices for each species that
         % will be treated as the "scattering object(s)" in determining the
@@ -177,7 +188,7 @@ function polymer_visual(filename,options)
         % a correction to the plot to make the figure look good as a thin
         % film. If it is not included, it is assumed that the data being
         % plotted are not under a thin film constraint.
-        options.film_params;
+        options.film_params = [];
         
     end
     
@@ -189,7 +200,13 @@ function polymer_visual(filename,options)
     addpath(filepath+"/utilities")
 
     % Read in the rgrid file
-    [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(filename);
+    [R,x,y,z,dim,lattype] = read_rgrid(filename);
+
+    basis = [x(end,1,1),y(end,1,1),z(end,1,1);
+             x(1,end,1),y(1,end,1),z(1,end,1);
+             x(1,1,end),y(1,1,end),z(1,1,end)];
+    n_mnr = size(R,4);
+
     if lattype ~= "hexagonal" && options.hex3
         error("hex3 is true but crystal system is not hexagonal")
     end
@@ -224,21 +241,17 @@ function polymer_visual(filename,options)
     
     if ~isfield(options,'isovalue')
         if n_mnr > 1
-            options.isovalue = get_isovalues(R,dim,n_mnr,grid,'plot',...
+            options.isovalue = get_isovalues(R,dim,'plot',...
                                options.isovalue_plot,'colors',...
                                options.colors,'fontsize',options.fontsize);
         else
             options.isovalue = 0.5;
         end
     end
-
-    if ~isfield(options,'film_params')
-        options.film_params = [];
-    end
     
     % Draw individual density profiles for each monomer species specified
     % in mono_disp:
-    individual_profiles(R,x,y,z,"isovalue",options.isovalue,"map",...
+    individual_profiles(R,x,y,z,dim,"isovalue",options.isovalue,"map",...
                         options.map,"mono_label",options.mono_label,...
                         "opacity",options.opacity,"hex3",options.hex3,...
                         "thick",options.thick,"box_color",...
@@ -246,11 +259,11 @@ function polymer_visual(filename,options)
                         "cb_ticks",options.cb_ticks,"fontsize",...
                         options.fontsize,"savefile",options.savefile, ...
                         "light",options.light,"hide_axes",...
-                        options.hide_axes,"film_params",...
-                        options.film_params);
+                        options.hide_axes,"view",options.view,...
+                        "film_params",options.film_params);
 
     % Draw the Composite Density Profile
-    composite_profile(R,x,y,z,"isovalue",options.isovalue,"map",...
+    composite_profile(R,x,y,z,dim,"isovalue",options.isovalue,"map",...
                       options.map,"mono_label",options.mono_label,...
                       "opacity",options.opacity,"hex3",options.hex3,...
                       "thick",options.thick,"box_color",...
@@ -259,20 +272,8 @@ function polymer_visual(filename,options)
                       options.fontsize,"savefile",options.savefile,...
                       "n_digits",options.n_digits,"cb_rows",...
                       options.cb_rows,"light",options.light,"hide_axes",...
-                      options.hide_axes,"film_params",options.film_params);
-
-    % Apply thin film correction if desired
-    %     (note: it is more convenient to apply the thin film correction
-    %     *inside* of composite_profile and individual_profiles, but more
-    %     convenient to apply it *before* calling the rest of the functions
-    %     below, which is why thin_film_correction is called here rather
-    %     than at the beginning).
-    basis = get_basis(cell_d,angle); % get lattice basis vectors
-    if isfield(options,'film_params') && ~isempty(options.film_params)
-        [R,x,y,z,~] = thin_film_correction(R,x,y,z,basis,...
-                          options.film_params(1),options.film_params(2),...
-                          options.film_params(3),options.film_params(4));
-    end
+                      options.hide_axes,"view",options.view,...
+                      "film_params",options.film_params);
 
     % Draw the scattering plot
     if options.savefile ~= ""
@@ -286,7 +287,8 @@ function polymer_visual(filename,options)
     scattering_plot(R,x,y,z,options.scatterers,'fontsize',...
                     options.fontsize,'savefile',savefile_scat,...
                     'theta_plot',options.theta_plot,'units',...
-                    options.units,'writefile',writefile_scat);
+                    options.units,'writefile',writefile_scat,'hkls', ...
+                    options.hkls,'film_params',options.film_params);
     
     % Draw the 1-D Line Profile
     if options.savefile ~= ""
@@ -294,12 +296,17 @@ function polymer_visual(filename,options)
     else
         savefile_1D = "";
     end
+    if ~isempty(options.film_params)
+        coords = {x,y,z};
+    else
+        coords = {};
+    end
     line_profile(R,options.direc,options.startloc,'savefile',...
                  savefile_1D,'fontsize',options.fontsize,'mono_label',...
-                 options.mono_label,'colors',options.colors)
+                 options.mono_label,'colors',options.colors,...
+                 'film_params',options.film_params,'coords',coords);
 
     % Create the 2-D Contour Plot
-    basis = get_basis(cell_d,angle);
     if options.savefile ~= ""
         savefile_2D = fullfile(f_path,strcat(f_name,'_2D',f_ext));
     else
@@ -310,7 +317,8 @@ function polymer_visual(filename,options)
                  options.map,'isovalue',options.isovalue,'cb_ticks',...
                  options.cb_ticks,'cb_rows',options.cb_rows,'n_digits',...
                  options.n_digits,'phase',options.phase,'savefile',...
-                 savefile_2D);
+                 savefile_2D,'film_params',options.film_params,'coords',...
+                 coords);
 
     toc
 

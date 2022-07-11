@@ -84,12 +84,17 @@ function line_profile(R,direc,startloc,options)
         % a correction to the plot to make the figure look good as a thin
         % film. If it is not included, it is assumed that the data being
         % plotted are not under a thin film constraint.
-        %
-        % This input only affects the resulting plot if the input R is a
-        % filename, not a dataset. If R is a dataset, it is assumed that
-        % any desired corrections (e.g. the thin film correction) have
-        % already been applied.
         options.film_params;
+        
+        % You must provide coords as an input if the following are true:
+        %   1) R, the first input to this function, is a data array (as
+        %      opposed to a filename)
+        %   2) You wish to apply a thin film correction
+        % Coords is merely a cell array containing the x, y, and z arrays
+        % that are produced by read_rgrid.m (so, coords = {x, y, z}). These
+        % coordinates are required inputs for thin_film_correction.m, so we
+        % must have them available if we wish to apply the correction.
+        options.coords;
         
     end
     
@@ -100,31 +105,54 @@ function line_profile(R,direc,startloc,options)
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
-        clear x y z; % We will determine x, y, and z from the rgrid file
         close all; % close other figures
                 
         % Read data from file
-        [R,x,y,z,~,~,cell_d,angle,~,~] = read_rgrid(R);
-
-        % Get lattice basis vectors
-        basis = get_basis(cell_d,angle);
-
-        % Apply thin film correction if desired
-        if isfield(options,'film_params') && ~isempty(options.film_params)
-            R = thin_film_correction(R,x,y,z,basis,...
-                          options.film_params(1),options.film_params(2),...
-                          options.film_params(3),options.film_params(4));
-        end
-        
+        options.coords = cell(1,3);
+        [R,options.coords{1},options.coords{2},...
+                                options.coords{3}] = read_rgrid(R);
     end
     
     % define dim, grid, and n_mnr
-    dim = length(direc);
-    grid = zeros(size(direc));
+    dim = length(direc); % Note: this does not necessarily need to match
+                         % the dim of the system. R always contains 3D data
+    grid = ones(1,3);
     for d = 1:dim
         grid(d) = size(R,d) - 1;
     end
-    n_mnr = size(R,dim+1);
+    n_mnr = size(R,4); % Note: R contains 3D data, even if dim < 3
+
+    % Make direc and startloc into 3D vectors if not already
+    while length(direc) < 3; direc(end+1) = 0; end %#ok<AGROW> 
+    while length(startloc) < 3; startloc(end+1) = 0; end %#ok<AGROW> 
+
+    % Apply thin film correction to data if desired
+    startloc_og = startloc; % input startloc, before any corrections
+    direc_og = direc; % input direc, before any corrections
+    if isfield(options,'film_params') && ~isempty(options.film_params)
+
+        if ~isfield(options,"coords") % Make sure we have coords
+            error("coords is a required input for this condition")
+        end
+
+        R = thin_film_correction(R,options.coords{1},options.coords{2},...
+                          options.coords{3},options.film_params(1),...
+                          options.film_params(2),options.film_params(3),...
+                          false,true);
+        
+        if options.film_params(4) % If a rotation is desired, then:
+            % Change direc and startloc to match the rotation. R is not
+            % altered by the rotation in thin_film_correction (only x,
+            % y, and z) so we must do this manually in this function
+            if options.film_params(1) == 0 % normalVec == 0
+                direc = direc(:,[3,1,2]);
+                startloc = startloc(:,[3,1,2]);
+            elseif options.film_params(1) == 1 % normalvec == 1
+                direc = direc(:,[2,3,1]);
+                startloc = startloc(:,[2,3,1]);
+            end
+        end
+    end
 
     % Define variables that characterize the line
     start_coord = startloc .* grid + 1;
@@ -138,11 +166,10 @@ function line_profile(R,direc,startloc,options)
     % if start_coord is on a gridpoint
     if max(abs(start_coord-round(start_coord))) < 1e-5 
         x_min = 0;
-    else
+    else % Find next gridpoint along the line that is before start_coord
         diff = start_data(ind) - floor(start_data(ind));
         start_data = start_data - (diff * direc / direc(ind));
         
-        % Find next gridpoint along the line that is past end_coord
         counter = 0;
         
         while max(abs(start_data-round(start_data))) > 1e-5 && ...
@@ -159,11 +186,10 @@ function line_profile(R,direc,startloc,options)
     % if end_coord is on a gridpoint
     if max(abs(end_coord-round(end_coord))) < 1e-5 
         x_max = 1;
-    else
+    else % Find next gridpoint along the line that is past end_coord
         diff = ceil(end_data(ind)) - end_data(ind);
         end_data = end_data + (diff * direc / direc(ind));
         
-        % Find next gridpoint along the line that is past end_coord
         counter = 0;
         
         while max(abs(end_data-round(end_data))) > 1e-5 && ...
@@ -205,6 +231,14 @@ function line_profile(R,direc,startloc,options)
         end
     end
     gridpoints = round(gridpoints);
+
+    % Make gridpoints into a 3-column array even if dim < 3, to index R
+    % properly
+    if dim == 2
+        gridpoints(:,3) = 1;
+    elseif dim == 1
+        gridpoints(:,2:3) = 1;
+    end
     
     % Get composition data at all gridpoints along line
     line_plot = zeros(n_mnr,length(x_vals));
@@ -233,10 +267,10 @@ function line_profile(R,direc,startloc,options)
     end
     
     if isequal(startloc,[0 0 0])
-        title1 = sprintf('Density Profile Along [%g %g %g]',direc);
+        title1 = sprintf('Density Profile Along [%g %g %g]',direc_og);
     else
         title1 = sprintf('Density Profile from [%g %g %g] to [%g %g %g]'...
-                         ,startloc,startloc+direc);
+                         ,startloc_og,startloc_og+direc_og);
     end
     title(title1)
     xlabel('r/r_{max}')

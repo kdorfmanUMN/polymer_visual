@@ -95,12 +95,8 @@ function scattering_plot(R,x,y,z,scatterers,options)
         % wall. If this film_params input is included, the code will apply
         % a correction to the plot to make the figure look good as a thin
         % film. If it is not included, it is assumed that the data being
-        % plotted are not under a thin film constraint.
-        %
-        % This input only affects the resulting plot if the input R is a
-        % filename, not a dataset. If R is a dataset, it is assumed that
-        % any desired corrections (e.g. the thin film correction) have
-        % already been applied.
+        % plotted are not under a thin film constraint, or have already 
+        % been corrected as desired by the user.
         options.film_params;
         
     end
@@ -116,31 +112,33 @@ function scattering_plot(R,x,y,z,scatterers,options)
         close all; % close other figures
                 
         % Read data from file
-        [R,x,y,z,~,~,cell_d,angle,~,~] = read_rgrid(R);
+        [R,x,y,z] = read_rgrid(R);
         
         % Get lattice basis vectors
-        [basis,kbasis] = get_basis(cell_d,angle);
-
-        % Apply thin film correction if desired
-        if isfield(options,'film_params') && ~isempty(options.film_params)
-            [R,x,y,z,~] = thin_film_correction(R,x,y,z,basis,...
-                          options.film_params(1),options.film_params(2),...
-                          options.film_params(3),options.film_params(4));
-        end
+        basis = [x(end,1,1),y(end,1,1),z(end,1,1);
+                 x(1,end,1),y(1,end,1),z(1,end,1);
+                 x(1,1,end),y(1,1,end),z(1,1,end)];
         
-    else
+    else % get basis and kbasis from x, y, z arrays
         
         basis = [x(end,1,1) y(end,1,1) z(end,1,1);
                  x(1,end,1) y(1,end,1) z(1,end,1);
                  x(1,1,end) y(1,1,end) z(1,1,end)];
-             
-        V = abs(dot(basis(1,:),cross(basis(2,:),basis(3,:))));
-        kbasis = zeros(3); 
-        kbasis(1,:) = round(cross(basis(2,:),basis(3,:))/V,10);
-        kbasis(2,:) = round(cross(basis(3,:),basis(1,:))/V,10);
-        kbasis(3,:) = round(cross(basis(1,:),basis(2,:))/V,10);
-             
     end
+
+    % Apply thin film correction if desired
+    if isfield(options,'film_params') && ~isempty(options.film_params)
+        [R,x,y,z,basis] = thin_film_correction(R,x,y,z,...
+                      options.film_params(1),options.film_params(2),...
+                      options.film_params(3),options.film_params(4));
+    end
+
+    % Calculate kbasis
+    V = abs(dot(basis(1,:),cross(basis(2,:),basis(3,:))));
+    kbasis = zeros(3); 
+    kbasis(1,:) = round(cross(basis(2,:),basis(3,:))/V,10);
+    kbasis(2,:) = round(cross(basis(3,:),basis(1,:))/V,10);
+    kbasis(3,:) = round(cross(basis(1,:),basis(2,:))/V,10);
 
 
     % Create list of hkl indices to check for scattering peaks if not
@@ -272,6 +270,21 @@ function scattering_plot(R,x,y,z,scatterers,options)
             else
                 row2 = row2 + 1;
             end
+        end
+    end
+
+    % Apply permutation to hkls_q to match the thin film correction, if the
+    % correction included a rotation (this only affects the labels on the
+    % plot, not any part of the numerical calculation)
+    if isfield(options,'film_params') && ...
+       ~isempty(options.film_params) && options.film_params(4)
+        if options.film_params(1) == 0 % normalVec == 0
+            perm = [2,3,1];
+        elseif options.film_params(1) == 1 % normalVec == 1
+            perm = [3,1,2];
+        end
+        for row = 1:size(hkls,1)
+            hkls_q{row} = hkls_q{row}(:,perm);
         end
     end
 
