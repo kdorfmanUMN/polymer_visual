@@ -35,7 +35,7 @@ From the standpoint of Polymer Visual, the SCFT output of interest is the real-s
 <br>
 
 <p align="center">
-<img src="docs/figs/gyr_A.png" alt="gyroid A block" height="350"/> <br>
+<img src="docs/figs/gyr_A.png" alt="gyroid A block" height="350"/>
 <img src="docs/figs/gyr_comp.png" alt="gyroid all blocks" height="350"/> <br>
 <font size="-1" align="center"><b>Fig. 1:</b> Density profiles generated with Polymer Visual showing a double-gyroid morphology, with numerically accurate colorbars.</font>
 </p>
