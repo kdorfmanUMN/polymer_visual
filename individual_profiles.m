@@ -1,7 +1,7 @@
 % Drawing individual composition profiles for each species in a converged
 % SCFT solution.
 
-function individual_profiles(R,x,y,z,options)
+function individual_profiles(R,x,y,z,dim,options)
     %% Define all input variables and name/value pair options:
     arguments
         
@@ -36,6 +36,7 @@ function individual_profiles(R,x,y,z,options)
         x = []
         y = []
         z = []
+        dim = 0
         
         % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % The rest of the inputs are optional name-value pair inputs:
@@ -50,7 +51,7 @@ function individual_profiles(R,x,y,z,options)
         options.savefile = "";
 
         % fontsize specifies the FontSize parameter for the axis on which
-        % data are plotted. Default value is 10.
+        % data are plotted. Default value is 14.
         options.fontsize = 14;
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
@@ -61,6 +62,17 @@ function individual_profiles(R,x,y,z,options)
         % into the plot (adds shadows that can make 3d structure clearer,
         % but invalidates the accuracy of the colorbar).
         options.light = false;
+
+        % view is a 1, 2, or 3-element vector that specifies the viewing
+        % angle of the figure(s). If this is included, we call 
+        % view(options.view) to set the viewing angle, so options.view must
+        % be something that complies with the view() function. If view = 2
+        % or view = 3, the view will be the default 2D or 3D view,
+        % respectively. If view is a 2-element vector, the two elements
+        % correspond to the azimuth and elevation angles, respectively. If
+        % view is a 3-element vector, the values represent a vector that
+        % points from the origin to the viewer. 
+        options.view;
 
         % If hide_axes is set to true, the plot will not contain the tick 
         % marks, title, etc. by setting the "visible" property of the axes
@@ -125,8 +137,9 @@ function individual_profiles(R,x,y,z,options)
     end
     
     % Ensure that the code below can access our utilities
-    addpath(pwd+"/utilities")
-    
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")    
+
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
@@ -134,15 +147,12 @@ function individual_profiles(R,x,y,z,options)
         close all; % close other figures
                 
         % Read data from file
-        [R,x,y,z,dim,lattype,cell_d,angle,n_mnr,grid] = read_rgrid(R);
+        [R,x,y,z,dim,lattype] = read_rgrid(R);
         
         % If hex3 is true, make sure system is actually hexagonal
         if options.hex3 && strcmp(lattype,'hexagonal') == 0
             error("hex3 is true but crystal system is not hexagonal")
         end
-        
-        % Get lattice basis vectors
-        basis = get_basis(cell_d,angle);
     
     % If R is not a string defining a filename, we assume it is a data
     % array containing species compositions. So, below we make sure we have
@@ -150,28 +160,30 @@ function individual_profiles(R,x,y,z,options)
     % variables.
     else
         
-        % Make sure that we have x and y (and z if data are 3D):
+        % Make sure that we have x, y, z, and dim:
         if isempty(x) || isempty(y) % if x or y are not provided
             error("Necessary coordinates of data were not provided")
         elseif ndims(x) == 3 && isempty(z) % R is 3D and z is not provided
             error("z coordinates were not provided for 3D data")
+        elseif dim ~= 1 && dim ~= 2 && dim ~= 3
+            error("dim is a required variable & must be either 1, 2, or 3")
         end
-        
-        dim = ndims(x);
-        % Define grid, basis, and n_mnr
-        grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
-        n_mnr = size(R,4);
-        basis = [x(end,1,1),y(end,1,1),z(end,1,1);
-                 x(1,end,1),y(1,end,1),z(1,end,1);
-                 x(1,1,end),y(1,1,end),z(1,1,end)];
-        
+
     end
+
+    % Get n_mnr, grid, and basis from the R, x, y, and z arrays
+    n_mnr = size(R,4);
+    grid = size(x) - 1;
+    basis = [x(end,1,1),y(end,1,1),z(end,1,1);
+             x(1,end,1),y(1,end,1),z(1,end,1);
+             x(1,1,end),y(1,1,end),z(1,1,end)];
 
     % Apply thin film correction if desired
     if isfield(options,'film_params') && ~isempty(options.film_params)
-        [R,x,y,z,basis] = thin_film_correction(R,x,y,z,basis,...
+        [R,x,y,z,basis] = thin_film_correction(R,x,y,z,...
                           options.film_params(1),options.film_params(2),...
                           options.film_params(3),options.film_params(4));
+        grid = size(R,1:3); % Update grid
     end
     
     % Get other parameters needed for composition profiles, using
@@ -200,7 +212,7 @@ function individual_profiles(R,x,y,z,options)
     if isfield(options,'isovalue')
         isovalue = options.isovalue;
     else
-        isovalue = get_isovalues(R,dim,n_mnr,grid,'plot',false);
+        isovalue = get_isovalues(R,dim,'plot',false);
     end
     
     if isscalar(options.n_digits)
@@ -210,6 +222,12 @@ function individual_profiles(R,x,y,z,options)
             error('n_digits must be a scalar or an array of length n_mnr')
         end
         n_digits = options.n_digits;
+    end
+
+    if isfield(options,'view')
+        view_angle = options.view;
+    else
+        view_angle = 3;
     end
     
     hex3 = options.hex3; 
@@ -243,7 +261,8 @@ function individual_profiles(R,x,y,z,options)
         % We only need to show the colorbar if the isosurface intersects
         % with the faces of the unit cell. Thus, we use the data from the
         % isocaps to determine if we need to plot the colorbars.
-        max_color = max(fvc.facevertexcdata);
+        max_color = max(R(:,:,:,in),[],'all');
+        %max_color = max(fvc.facevertexcdata);
         if isovalue(in) < max_color 
             
             % Create colorbar:
@@ -342,12 +361,7 @@ function individual_profiles(R,x,y,z,options)
             end
         end
 
-        % Set view
-        if dim == 3
-            view(3); % Sets 3-D view
-        else
-            view(2); % Sets 2-D view
-        end
+        view(view_angle); % Sets viewing angle
 
         % Fix data aspect ratio and set axis limits to "tight" setting
         daspect([1 1 1]);  % Equates the data aspect ratio for each axis

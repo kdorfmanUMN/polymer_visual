@@ -30,10 +30,9 @@ function contour_plot(R,contourvecs,basis,options)
         % If R is a data array rather than a filename, then basis must also
         % be provided. The default value (empty arrays) below is provided 
         % only because this input is not required if R is a filename
-
+        %
         % basis is a required input array where each row is a lattice basis
-        % vector in Cartesian coordinates (see get_basis.m). Thus, in 3D
-        % this needs to be a 3x3 array.
+        % vector in 3D Cartesian coordinates (see get_basis.m). 
         basis = [];
         
         % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,12 +103,17 @@ function contour_plot(R,contourvecs,basis,options)
         % a correction to the plot to make the figure look good as a thin
         % film. If it is not included, it is assumed that the data being
         % plotted are not under a thin film constraint.
-        %
-        % This input only affects the resulting plot if the input R is a
-        % filename, not a dataset. If R is a dataset, it is assumed that
-        % any desired corrections (e.g. the thin film correction) have
-        % already been applied.
         options.film_params;
+
+        % You must provide coords as an input if the following are true:
+        %   1) R, the first input to this function, is a data array (as
+        %      opposed to a filename)
+        %   2) You wish to apply a thin film correction
+        % Coords is merely a cell array containing the x, y, and z arrays
+        % that are produced by read_rgrid.m (so, coords = {x, y, z}). These
+        % coordinates are required inputs for thin_film_correction.m, so we
+        % must have them available if we wish to apply the correction.
+        options.coords;
         
     end
     
@@ -118,25 +122,23 @@ function contour_plot(R,contourvecs,basis,options)
     cb_rows = options.cb_rows;       phase = options.phase;           
 
     % Ensure that the code below can access our utilities
-    addpath(pwd+"/utilities")
-    
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")
+
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
         close all; % close other figures
                 
         % Read data from file
-        [R,x,y,z,dim,~,cell_d,angle,n_mnr,grid] = read_rgrid(R);
+        [R,x,y,z,dim] = read_rgrid(R);
         
         % Get lattice basis vectors
-        basis = get_basis(cell_d,angle);
+        basis = [x(end,1,1),y(end,1,1),z(end,1,1);
+                 x(1,end,1),y(1,end,1),z(1,end,1);
+                 x(1,1,end),y(1,1,end),z(1,1,end)];
 
-        % Apply thin film correction if desired
-        if isfield(options,'film_params') && ~isempty(options.film_params)
-            R = thin_film_correction(R,x,y,z,basis,...
-                          options.film_params(1),options.film_params(2),...
-                          options.film_params(3),options.film_params(4));
-        end
+        options.coords = {x,y,z}; clear x y z;
     
     % If R is not a string defining a filename, we assume it is a data
     % array containing species compositions. So, below we make sure we have
@@ -146,25 +148,46 @@ function contour_plot(R,contourvecs,basis,options)
         
         % Make sure that basis array is provided
         if isempty(basis) % if basis array is not provided
-            error("basis must both be provided as input")
+            error("basis must be provided as input")
         end
-        
-        grid = size(R); grid = grid(1:size(basis,2));
-        dim = length(grid);
-        
-        % Define grid and n_mnr (defined differently in 2D vs 3D)
-        if dim == 3
-            grid = [size(R,1)-1,size(R,2)-1,size(R,3)-1];
-            n_mnr = size(R,4);
-        elseif dim == 2
-            n_mnr = size(R,3);
-            grid = [size(R,1)-1,size(R,2)-1];
-        else
-            error('dim should be 2 or 3')
-        end
-        
+   
     end
 
+    % Define grid and n_mnr
+    grid = size(R,1:3) - 1;
+    n_mnr = size(R,4);
+
+    % Apply thin film correction if desired
+    if isfield(options,'film_params') && ~isempty(options.film_params)
+
+        if ~isfield(options,"coords") % Make sure we have coords
+            error("coords is a required input for this condition")
+        end
+
+        [R,~,~,~,basis] = thin_film_correction(R,options.coords{1},...
+                          options.coords{2},options.coords{3},...
+                          options.film_params(1),options.film_params(2),...
+                          options.film_params(3),false,true);
+        
+        outline = true; % Flag to draw the outline of the plot box, which 
+                        % we only do for thin films
+        
+        if options.film_params(4) % If a rotation is desired
+            % Change contourvecs to match the rotation. R is not
+            % altered by the rotation in thin_film_correction (only x,
+            % y, and z) so we must do this manually in this function
+            if options.film_params(1) == 0 % normalVec == 0
+                contourvecs = contourvecs(:,[3,1,2]);
+            elseif options.film_params(1) == 1 % normalvec == 1
+                contourvecs = contourvecs(:,[2,3,1]);
+            end
+        end
+    else
+        outline = false;
+    end
+
+    % Get other parameters needed for composition profiles, using
+    % default values if they are not provided as name-value inputs:
     if isfield(options,'map')
         map = options.map;
     else
@@ -174,7 +197,7 @@ function contour_plot(R,contourvecs,basis,options)
     if isfield(options,'isovalue')
         isovalue = options.isovalue;
     else
-        isovalue = get_isovalues(R,dim,n_mnr,grid,'plot',false);
+        isovalue = get_isovalues(R,dim,'plot',false);
     end
     
     if isscalar(options.n_digits)
@@ -220,15 +243,15 @@ function contour_plot(R,contourvecs,basis,options)
     yvec_coord = yvec .* grid;
     x_step_length = max(abs(xvec_coord));
     y_step_length = max(abs(yvec_coord));
-    x_init = linspace(0,norm(xvec_orth),x_step_length);
-    y_init = linspace(0,norm(yvec_orth),y_step_length);
+    x_init = linspace(0,norm(xvec_orth),x_step_length+1);
+    y_init = linspace(0,norm(yvec_orth),y_step_length+1);
 
     % Find gridpoints & their data vals in the plane of the contour plot
-    contour_data = zeros(y_step_length,x_step_length,n_mnr);
-    xcontour = zeros(y_step_length,x_step_length);
-    ycontour = zeros(y_step_length,x_step_length);
-    for xval = 1:x_step_length
-        for yval = 1:y_step_length
+    contour_data = zeros(y_step_length+1,x_step_length+1,n_mnr);
+    xcontour = zeros(y_step_length+1,x_step_length+1);
+    ycontour = zeros(y_step_length+1,x_step_length+1);
+    for xval = 1:x_step_length+1
+        for yval = 1:y_step_length+1
 
             x_coord = start_coord(1) + ...
                       (xval-1)*(xvec_coord(1)/x_step_length) + ...
@@ -258,18 +281,25 @@ function contour_plot(R,contourvecs,basis,options)
         end
     end
 
+    % Get corners of plotted region, which is used to draw an outline on
+    % the plot
+    x_corners = [xcontour(1,1),xcontour(end,1),xcontour(end,end),...
+                 xcontour(1,end),xcontour(1,1)];
+    y_corners = [ycontour(1,1),ycontour(end,1),ycontour(end,end),...
+                 ycontour(1,end),ycontour(1,1)];
+
     % Delete rows/columns if the whole row/column is NaN, because this
     % affects the interpolation of contourf:
     xvals_to_delete = [];
     yvals_to_delete = [];
-    for xval = 1:x_step_length
+    for xval = 1:x_step_length+1
         if isequal(isnan(contour_data(:,xval,1)),...
                    ones(size(contour_data(:,xval,1))))
             xvals_to_delete(end+1) = xval; %#ok<*AGROW> 
         end
     end
 
-    for yval = 1:y_step_length
+    for yval = 1:y_step_length+1
         if isequal(isnan(contour_data(yval,:,1)),...
                    ones(size(contour_data(yval,:,1))))
             yvals_to_delete(end+1) = yval;
@@ -310,6 +340,10 @@ function contour_plot(R,contourvecs,basis,options)
         caxis(ax(in),[isovalue(in),max_comps(in)])
         title1 = strcat('\phi','_',mono_label(in));
         title(cb(in),title1,'fontsize',fontsize*1.1)
+
+        if outline
+            line(x_corners,y_corners,'color','k','linewidth',1)
+        end
 
         set(ax(in),'Visible','off');
         daspect([1 1 1])
