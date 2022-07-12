@@ -1,5 +1,4 @@
 - Fix voronoi
 - Get rotate3d to work on composite profile
 - Learn how isovalue calculation works and write comments to explain it
-- Write documentation
 

@@ -2,7 +2,7 @@
 
 A package of MATLAB functions that generate detailed figures to characterize the structure of self-assembled polymeric systems, using data calculated by the [open-source software package PSCF](https://pscf-home.cems.umn.edu/). 
 
-The original MATLAB code was written by Naveen Pillai, with help from Akash Arora. This expanded version was created by Ben Magruder. The Voronoi cell visualization on the 2D contour plots was developed by Ryan Collanton. All of this work was done at the University of Minnesota -- Twin Cities, in the research group of Dr. Kevin Dorfman. 
+The original MATLAB code was written by Naveen Pillai, with help from Akash Arora. This expanded version was created by Ben Magruder. The Voronoi cell visualization on the 2D contour plots was developed by Ryan Collanton. All of this work was done at the University of Minnesota &ndash; Twin Cities, in the research group of Dr. Kevin Dorfman. 
 <br> <br>
 
 # Contents
@@ -21,6 +21,7 @@ The original MATLAB code was written by Naveen Pillai, with help from Akash Aror
   * [Thin Film Correction](#thin-film-correction)
 - [Development](#development)
   * [Using Git](#using-git)
+
 <br> <br>
 
 # Overview and Examples
@@ -32,38 +33,48 @@ SCFT is a mean-field theory that is derived from polymer statistical mechanics, 
 From the standpoint of Polymer Visual, the SCFT output of interest is the real-space composition profile of the polymer system. This is a 1D, 2D, or 3D profile on a discretized mesh of evenly spaced gridpoints in a unit cell, where a periodic boundary condition exists at each face of the unit cell. At each gridpoint, the volume fraction of each monomer and each solvent species is given, such that the sum of the volume fractions of all species is equal to 1. PSCF stores these data in an "rgrid" (Fortran) or "rf" (C++) file, and the goal of Polymer Visual is to generate 3D figures to visualize the data. Examples for a double-gyroid morphology are given below.
 
 <br>
-<figure align = "center" id="fig1">
+
+<p align="center">
 <img src="docs/figs/gyr_A.png" alt="gyroid A block" height="350"/> <br>
-<img src="docs/figs/gyr_comp.png" alt="gyroid all blocks" height="350"/>
-<figcaption><font size="-1"><b>Fig. 1:</b> Density profiles generated with Polymer Visual showing a double-gyroid morphology, with numerically accurate colorbars.</font></figcaption>
-</figure>
+<img src="docs/figs/gyr_comp.png" alt="gyroid all blocks" height="350"/> <br>
+<font size="-1" align="center"><b>Fig. 1:</b> Density profiles generated with Polymer Visual showing a double-gyroid morphology, with numerically accurate colorbars.</font>
+</p>
+
 <br>
 
 Users can also add opacity, lighting, and other customizations in order to make the figures more visually informative:
 
 <br>
-<figure align = "center" id="fig2">
+
+<p align = "center">
 <img src="docs/figs/gyr_A_2.png" alt="gyroid A block, stylized" height="350"/>
-<img src="docs/figs/gyr_comp_2.png" alt="gyroid all blocks, stylized" height="350"/>
-<figcaption><font size="-1"><b>Fig. 2:</b> Density profiles showing the same data as the profiles in [Fig. 1](#fig1), but with customized lighting and opacity.</font></figcaption>
-</figure>
+<img src="docs/figs/gyr_comp_2.png" alt="gyroid all blocks, stylized" height="350"/> <br>
+<font size="-1" align="center"><b>Fig. 2:</b> Density profiles showing the same data as the profiles in Fig. 1, but with customized lighting and opacity.</font>
+</p>
+
 <br>
 
-In addition to creating 3D visualizations, Polymer Visual can plot 1D line profiles along any user-defined line through the unit cell, as well as 2D contour plots on any user-defined plane cutting through the unit cell. Examples below are shown for the same double-gyroid structure as Figs. [1](#fig1) and [2](#fig2).
+In addition to creating 3D visualizations, Polymer Visual can plot 1D line profiles along any user-defined line through the unit cell, as well as 2D contour plots on any user-defined plane cutting through the unit cell. Examples below are shown for the same double-gyroid structure as Figs. 1 and 2.
+
 <br>
-<figure align = "center" id="fig3">
+
+<p align = "center">
 <img src="docs/figs/gyr_line.png" alt="gyroid line profile" height="350"/>
-<img src="docs/figs/gyr_contour.png" alt="gyroid contour plot" height="350"/>
-<figcaption><font size="-1"><b>Fig. 3:</b> A 1D line profile showing the change in species composition along the [111] direction through the double-gyroid unit cell, and a 2D contour plot showing the composition profile on the (1-10) plane (the plane containing [110] and [001]).</font></figcaption>
-</figure>
+<img src="docs/figs/gyr_contour.png" alt="gyroid contour plot" height="350"/> <br>
+<font size="-1" align="center"><b>Fig. 3:</b> A 1D line profile showing the change in species composition along the [111] direction through the double-gyroid unit cell, and a 2D contour plot showing the composition profile on the (1-10) plane (the plane containing [110] and [001]).</font>
+</p>
+
 <br>
 
 Finally, Polymer Visual can use the 3D composition profiles to predict the scattering peak intensities of the structure, assuming that the scattering volume of the sample has many grains that are randomly oriented. The predicted scattering profile of the double-gyroid is shown below.
+
 <br>
-<figure align = "center" id="fig4">
-<img src="docs/figs/gyr_scat.png" alt="gyroid scattering profile" height="500"/>
-<figcaption><font size="-1"><b>Fig. 4:</b> The predicted scattering profile of a multi-grain, randomly oriented sample of the double-gyroid structure of Figs. [1](#fig1)-[3](#fig3).</font></figcaption>
-</figure>
+
+<p align = "center">
+<img src="docs/figs/gyr_scat.png" alt="gyroid scattering profile" height="500"/> <br>
+<font size="-1" align="center"><b>Fig. 4:</b> The predicted scattering profile of a multi-grain, randomly oriented sample of the double-gyroid structure of Figs. 1-3.</font>
+</p>
+
 <br> <br>
 
 # Installation
@@ -79,17 +90,18 @@ The package is hosted on GitHub [here](https://github.com/rpcollanton/polymer_vi
 	* A new directory, polymer\_visual, will be downloaded and will contain all of the polymer\_visual code.
 
 Users who install the software using a git client can call `git pull` from the polymer\_visual directory at any time to update their version of the code to the most up-to-date version on the GitHub repository. More advanced version control features available with git can be learned using a variety of online resources, including the [git user manual](https://git-scm.com/docs/user-manual). For those who wish to contribute to the code, a brief overview of the useful features of git can be found in the [Development](#development) section. 
+
 <br> <br>
 
 # Basic Usage
 
-Polymer Visual was written for a very specific type of usage: any possible plot that the user might want to create can (ideally) be generated by a single function call from the MATLAB Command Window. This is implemented through a large number of allowed name-value pair inputs that can be passed to the functions, each of which customizes the resulting figure in a particular way. For example, the composite density profile in [Fig. 1](#fig1) was generated by the following function call, which does not contain name-value pair inputs and thus represents the default behavior:
+Polymer Visual was written for a very specific type of usage: any possible plot that the user might want to create can (ideally) be generated by a single function call from the MATLAB Command Window. This is implemented through a large number of allowed name-value pair inputs that can be passed to the functions, each of which customizes the resulting figure in a particular way. For example, the composite density profile in [Fig. 1](#overview-and-examples) was generated by the following function call, which does not contain name-value pair inputs and thus represents the default behavior:
 
 ```matlab
 composite_profile('examples/gyr.rgrid')
 ```
 
-By contrast, the profile in [Fig. 2](#fig2) was generated using
+By contrast, the profile in [Fig. 2](#overview-and-examples) was generated using
 
 ```matlab
 composite_profile('examples/gyr.rgrid', 'light', true, 'hide_axes', true, 'opacity', [1,0;1,0.5])
@@ -97,11 +109,11 @@ composite_profile('examples/gyr.rgrid', 'light', true, 'hide_axes', true, 'opaci
 
 As is evident from these function calls, the only necessary input to `composite_profile` is a path to the file that contains the data you wish to plot, in PSCF r-grid format. This same type of usage can be applied to some of the other functions in this package, namely `individual_profiles(filename)` and `scattering_plot(filename)` that generate individual density profiles and the predicted scattering peak intensities, respectively. 
 
-The functions `line_profile(filename, direc)` and `contour_plot(filename, contourvecs)` generate figures like those shown in [Fig. 3](#fig3), and they require an additional input parameter that specifies either the line or the plane through the unit cell that should be plotted, respectively.
+The functions `line_profile(filename, direc)` and `contour_plot(filename, contourvecs)` generate figures like those shown in [Fig. 3](#overview-and-examples), and they require an additional input parameter that specifies either the line or the plane through the unit cell that should be plotted, respectively.
 
 Finally, users can call `polymer_visual(filename)` to generate all possible plots, which requires only the filename as an input.
 
-In addition to a filename input, all of the functions in Polymer Visual can instead directly accept the matrices containing the data that are needed to generate the plot. For example, the composite density profile in [Fig. 1](#fig1) can be generated with the following call:
+In addition to a filename input, all of the functions in Polymer Visual can instead directly accept the matrices containing the data that are needed to generate the plot. For example, the composite density profile in [Fig. 1](#overview-and-examples) can be generated with the following call:
 
 ```matlab
 composite_profile(R,x,y,z,dim)
@@ -110,11 +122,12 @@ composite_profile(R,x,y,z,dim)
 where R, x, y, z, and dim contain all of the data necessary to create the plot (more detail on these inputs is given in the sections below). This way, a script that calls multiple of these Polymer Visual functions for the same data set (like the `polymer_visual` script) does not need to read in the data from the file multiple times, and can instead pass the data directly into each of the functions. 
 
 The remainder of this section describes each function in Polymer Visual individually, giving a description of all possible inputs that can be accepted by the functions.
+
 <br> <br>
 
 ## Individual Composition Profiles
 
-The function `individual_profiles` will draw a 3D density profile for each species in the system, like the A block density profiles shown in Figs. [1](#fig1) and [2](#fig2).
+The function `individual_profiles` will draw a 3D density profile for each species in the system, like the A block density profiles shown in Figs. [1 and 2](#overview-and-examples).
 
 |Syntax|Description|
 |---|---|
@@ -140,23 +153,24 @@ The function `individual_profiles` will draw a 3D density profile for each speci
 |`savefile`| A filename to which the figures will be saved. The file extension provided (e.g. ".fig" or ".png") will be used to determine the type of file to save. Since this function typically generates more than 1 figure, we append mono_label(j) to the end of the filename when saving the composition profile for species j. If left empty (which is the default behavior), the figures are not saved.|
 |`fontsize`| Specifies the FontSize parameter for the axis on which data are plotted. Default value is 14.|
 |`hex3`| A boolean indicating whether to plot 3 unit cells for a hexagonal system (in the shape of a hexagon) rather than 1. Should only be true if the lattice system is hexagonal. Default value is false.|
-|`light`| A boolean indicating whether to insert a "light" object into the plot. This adds shadows that can make 3D structure clearer (see [Fig. 2](#fig2)), but invalidates the accuracy of the colorbar. Default value is false.|
+|`light`| A boolean indicating whether to insert a "light" object into the plot. This adds shadows that can make 3D structure clearer (see [Fig. 2](#overview-and-examples)), but invalidates the accuracy of the colorbar. Default value is false.|
 |`view`| A 1, 2, or 3-element vector that specifies the viewing angle of the figure(s). If this is included, it is stored in options.view and we call view(options.view) to set the viewing angle, so options.view must be something that complies with the view() function. If the input is 2 or 3 (scalar values), the view will be the default 2D or 3D view, respectively. If the input is a 2-element vector, the two elements correspond to the azimuth and elevation angles, respectively. If view is a 3-element vector, the values represent a vector that points from the origin to the viewer. Default value is 3.|
 |`hide_axes`| A boolean indicating whether to hide the axes on the plot. If set to true, the plot will not contain the tick marks, title, etc. by setting the "visible" property of the axes to "off". Default value is false.|
 |`isovalue`| An array of isovalues representing the minimum volume fraction to show on plot. Each element in the isovalue array corresponds to one species, such that isovalue(j) is the isovalue for the species described by the data R(:,:,:,j). If not specified, we call utilities/get_isovalues.m to calculate them automatically.|
 |`mono_label`| An array containing string labels for each monomer species. If not specified, we use ["A","B","C",...] as the default behavior.|
-|`opacity`| An array containing values of opacity to plot for each species. 2 opacities are specified for each species j: opacity(1,j) is the opacity of the interior of the domains, while opacity(2,j) is the opacity of the exterior (caps) of the domains. If unspecified, all values default to 1 (completely opaque). See the composite density profile in [Fig. 2](#fig2) for an example of this, in which opacity = [1,0;1,0.5].|
+|`opacity`| An array containing values of opacity to plot for each species. 2 opacities are specified for each species j: opacity(1,j) is the opacity of the interior of the domains, while opacity(2,j) is the opacity of the exterior (caps) of the domains. If unspecified, all values default to 1 (completely opaque). See the composite density profile in [Fig. 2](#overview-and-examples) for an example of this, in which opacity = [1,0;1,0.5].|
 |`map`| A cell array containing a colormap for each species. map{j} is the colormap for species j. If unspecified, we use the default colormaps generated by utilities/get_colormaps.m.|
 |`thick`| A scalar specifying the value for "linethickness" used to draw the outer box of the unit cell. Default value is 1.|
 |`box_color`| A [string or RGB triplet](https://www.mathworks.com/help/matlab/creating_plots/specify-plot-colors.html) specifying the value for "color" used to draw the outer box of the unit cell. Default color is gray ([0.5,0.5,0.5]).|
 |`cb_ticks`| A scalar specifying the number of ticks to show on each colorbar. Default value is 10.|
 |`n_digits`| A scalar or vector specifying the number of digits past the decimal point to use for the colorbar tick labels. Can be specified as a scalar, or as an array of length n_mnr (one value per monomer species plotted) if you want a different # of digits for each colorbar. Default value is 3.|
 |`film_params`| If your SCFT result is a thin film, you should include film\_params as an input to apply a thin film correction. See the [Thin Film Correction](#thin-film-correction) section below for a description of this correction. <br> <br> film\_params is an array with 4 entries. The first 3 entries correspond to the 3 required parameters in pscfpp that are needed to define a Wall object: normalVec, interfaceThickness, and wallThickness. See [pscfpp](https://github.com/dmorse/pscfpp) documentation for details about what each of these three parameters means. The fourth entry is a boolean (i.e. 0 for false, 1 for true) that indicates whether or not to rotate the figure to make the z axis orthogonal to the wall. If this film_params input is included, the code will apply a correction to the plot to make the figure look good as a thin film. If it is not included, it is assumed that the data being plotted are not under a thin film constraint, or that any correction has already been applied.|
+
 <br> <br>
 
 ## Composite Composition Profiles
 
-The function `composite_profile` will draw a 3D density profile for all species in the system on the same axes, like the composite density profiles shown in Figs. [1](#fig1) and [2](#fig2).
+The function `composite_profile` will draw a 3D density profile for all species in the system on the same axes, like the composite density profiles shown in Figs. [1 and 2](#overview-and-examples).
 
 |Syntax|Description|
 |---|---|
@@ -176,11 +190,12 @@ All name-value pair arguments that are used for `individual_profiles` [described
 |---|---|
 |`species`| A vector that contains the indices for each monomer species to plot, allowing users to plot *some* but not *all* species in the composite profile. For example, if the data set contains 4 species but only the first and third should be plotted, species = [1,3]. The default behavior is to plot all species.|
 |`cb_rows`| A scalar specifying the number of rows of colorbars that are shown on the figure. For example, if there are 8 colorbars on the figure, cb_rows = 2 will result in a 2x4 grid of colorbars being shown on the figure, as opposed to the default 1x8 grid. Default value is 1.|
+
 <br> <br>
 
 ## 1D Line Profiles
 
-The function `line_profile` will plot the compositions of each species along any line through the unit cell specified by the user (as long as there are gridpoints somewhere along this line). An example is shown in [Fig. 4](#fig4). 
+The function `line_profile` will plot the compositions of each species along any line through the unit cell specified by the user (as long as there are gridpoints somewhere along this line). An example is shown in [Fig. 4](#overview-and-examples). 
 
 |Syntax|Description|
 |---|---|
@@ -209,6 +224,7 @@ The function `line_profile` will plot the compositions of each species along any
 |`colors`| A matrix specifying the color of each line. colors[j,:] is an RGB triplet that is the color for the line profile of species j. The default values correspond to the default colors given in utilities/get_colormaps.|
 |`film_params`| If your SCFT result is a thin film, you should include film\_params as an input to apply a thin film correction. See the [Thin Film Correction](#thin-film-correction) section below for a description of this correction. **NOTE: if you include film\_params, you may also need to include coords; see below.** <br> <br> film\_params is an array with 4 entries. The first 3 entries correspond to the 3 required parameters in pscfpp that are needed to define a Wall object: normalVec, interfaceThickness, and wallThickness. See [pscfpp](https://github.com/dmorse/pscfpp) documentation for details about what each of these three parameters means. The fourth entry is a boolean (i.e. 0 for false, 1 for true) that indicates whether or not to rotate the figure to make the z axis orthogonal to the wall. If this film_params input is included, the code will apply a correction to the plot to make the figure look good as a thin film. If it is not included, it is assumed that the data being plotted are not under a thin film constraint, or that any correction has already been applied.|
 |`coords`| You must provide coords as an input if the following are both true: <ol> <li> The first input to this function is a data array (R, as opposed to a filename string), and </li> <li> You wish to apply a thin film correction. </li> </ol> Coords is merely a cell array containing the x, y, and z arrays that are produced by utilities/read\_rgrid.m (so, coords = {x, y, z}). These x, y, and z arrays are also the same arrays that are required by `individual_profiles` and `composite_profile` described [above](#individual-composition-profile). These coordinates are required inputs for thin\_film\_correction.m, so we must have them available if we wish to apply the correction.|
+
 <br> <br>
 
 ## 2D Contour Plots
@@ -293,6 +309,7 @@ If `savefile` is specified as a name-value pair input, the figures will all be s
 Furthermore, `polymer_visual` does not require `direc` and `contourvecs` as inputs, but instead leaves them as additional optional name-value pair inputs. The function uses default values for `direc` ([1,1,1]) and `contourvecs` ([0,0,0; 1,1,0; 0;0;1]) to generate line profiles and contour plots if these name-value pair inputs are omitted.
 
 `polymer_visual` has one additional name-value pair option: `isovalue_plot`. If this is set to true, there will be one additional figure generated by the function that shows the lines used to calculate the isovalues. The default value is false.
+
 <br> <br>
 
 # Advanced Usage
@@ -331,7 +348,7 @@ There is one final piece of the puzzle that is needed in order to run Polymer Vi
    addpath('/path/to/polymer_visual/')
 	```
 
-	where "/path/to/polymer\_visual/" is replaced with the actual path to the Polymer Visual directory (which should end with "/polymer\_visual/"). 
+	where "/path/to/polymer\_visual/" is replaced with the actual path to the Polymer Visual directory (which should end with "/polymer\_visual/"). This will need to be called before calling any Polymer Visual commands, and will need to be re-called every time you run a new matlab command from the command line.
 2. Add the above command to a file called startup.m in MATLAB's userpath directory (often Documents/MATLAB/). This will permanently make polymer\_visual visible to MATLAB from any directory.
 	* Note that this userpath may need to be set manually on remote clusters like MSI, because there is no Documents/MATLAB/ directory created for every user. So, users can create a directory in the preferred location and make this directory the userpath by running
 
@@ -361,10 +378,10 @@ In PSCF, there are 3 parameters that are required to define this "wall": normalV
 Based on this conception of a thin film constraint in SCFT, the volume fractions of all species will go to 0 as we enter the wall region of the unit cell. So, in Polymer Visual, the density profiles will show this decline to zero in the form of a low concentration of all species at the wall interface, exemplified in Fig. 5 below:
 
 <br>
-<figure align = "center" id="fig5">
+<p align = "center">
 <img src="docs/figs/wall_uncorrected.png" alt="uncorrected thin film density profile" height="350"/> <br>
-<figcaption><font size="-1"><b>Fig. 5:</b> Density profiles generated with Polymer Visual showing a perpendicular lamellar phase under a thin film constraint. The "walls" are parallel to the x-z plane (the spaces where no species are shown, at the front and back of the unit cell). The thin film correction has not been applied to this data.</font></figcaption>
-</figure>
+<font size="-1" align="center"><b>Fig. 5:</b> Density profiles generated with Polymer Visual showing a perpendicular lamellar phase under a thin film constraint. The "walls" are parallel to the x-z plane (the spaces where no species are shown, at the front and back of the unit cell). The thin film correction has not been applied to this data.</font>
+</p>
 <br>
 
 The lower-right face of this density profile is all just low concentrations of polymer species as we enter the wall, an artifact of the calculation that we use to impose a wall boundary. However, we may desire to see what the *actual* composition of the polymer system is at the wall/polymer interface, rather than seeing an artifact of the calculation. This requires us to know the shape of the wall, and divide all of our data by 1-&rho;<sub>w</sub>(<b>r</b>). **That is the main purpose of the thin film correction in Polymer Visual.**
@@ -374,10 +391,10 @@ Another smaller correction that may be desirable is to have a consistent plane i
 An example of a corrected version of Fig. 5 is shown below: 
 
 <br>
-<figure align = "center" id="fig6">
+<p align = "center">
 <img src="docs/figs/wall_corrected.png" alt="corrected thin film density profile" height="350"/> <br>
-<figcaption><font size="-1"><b>Fig. 6:</b> Density profiles generated with Polymer Visual showing a perpendicular lamellar phase under a thin film constraint. The "walls" are parallel to the x-y plane (the spaces where no species are shown, at the top and bottom of the unit cell). The thin film correction **has** been applied to this data.</font></figcaption>
-</figure> 
+<font size="-1" align="center"><b>Fig. 6:</b> Density profiles generated with Polymer Visual showing a perpendicular lamellar phase under a thin film constraint. The "walls" are parallel to the x-y plane (the spaces where no species are shown, at the top and bottom of the unit cell). The thin film correction **has** been applied to this data.</font>
+</p> 
 <br>
 
 This verson of the plot clearly shows the composition profile at the wall/polymer interface on the top of the unit cell, which is valuable information to convey in a plot like this. 
