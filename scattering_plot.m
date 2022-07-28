@@ -55,6 +55,12 @@ function scattering_plot(R,x,y,z,scatterers,options)
         % for species i. If left empty (which is the default behavior), the
         % figures are not saved.
         options.savefile = "";
+
+        % resolution is a number that specifies the resolution of the
+        % figure that is saved (if options.savefile is specified), in dots
+        % per inch (dpi). Default value is 300. If set to 0, file is saved
+        % at screen resolution.
+        options.resolution = 300;
         
         % writefile is a filename to which the scattering data can be
         % written. This is very useful if you want to do further analyses
@@ -360,7 +366,20 @@ function scattering_plot(R,x,y,z,scatterers,options)
     
     % Save figure if a filename is provided
     if options.savefile ~= ""
-        saveas(gcf,options.savefile);
+        [~,~,ext] = fileparts(options.savefile);
+        if (ext == ".fig") || (ext == ".m")
+            saveas(gcf,options.savefile);
+        else
+            if ext == ".jpg"
+                format = "-djpeg";
+            elseif ext == ".tif"
+                format = "-dtiff";
+            else
+                format = strcat("-d", ext(2:end));
+            end
+            res = strcat("-r",num2str(options.resolution));
+            print(gcf,options.savefile,format,res);
+        end
     end
     
     hold off;

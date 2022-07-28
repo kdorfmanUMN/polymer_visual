@@ -10,3 +10,4 @@ count
 *.orig
 *.temp
 .vscode/
+*.asv

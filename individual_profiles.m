@@ -50,6 +50,12 @@ function individual_profiles(R,x,y,z,dim,options)
         % figures are not saved.
         options.savefile = "";
 
+        % resolution is a number that specifies the resolution of the
+        % figure that is saved (if options.savefile is specified), in dots
+        % per inch (dpi). Default value is 300. If set to 0, file is saved
+        % at screen resolution.
+        options.resolution = 300;
+
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 14.
         options.fontsize = 14;
@@ -230,6 +236,7 @@ function individual_profiles(R,x,y,z,dim,options)
         view_angle = 3;
     end
     
+    resolution = options.resolution;
     hex3 = options.hex3; 
     thick = options.thick; 
     box_clr = options.box_color;
@@ -431,6 +438,26 @@ function individual_profiles(R,x,y,z,dim,options)
             save_filename = fullfile(f_path, ...
                                 strcat(f_name,mono_label(in),f_ext));
             saveas(gcf,save_filename);
+        end
+
+        % Save figure if a filename is provided
+        if savefile ~= ""
+            [f_path,f_name,ext] = fileparts(savefile);
+            save_filename = fullfile(f_path, ...
+                                strcat(f_name,mono_label(in),f_ext));
+            if (ext == ".fig") || (ext == ".m")
+                saveas(gcf,save_filename);
+            else
+                if ext == ".jpg"
+                    format = "-djpeg";
+                elseif ext == ".tif"
+                    format = "-dtiff";
+                else
+                    format = strcat("-d", ext(2:end));
+                end
+                res = strcat("-r",num2str(resolution));
+                print(gcf,save_filename,format,res);
+            end
         end
         
         rotate3d on
