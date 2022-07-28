@@ -1,2 +1,12 @@
+web
+edit.py
 .DS_Store
-*.asv
+.gitignore~
+log
+*.a
+*.o
+count
+*.pyc
+*.orig
+*.temp
+.vscode/
