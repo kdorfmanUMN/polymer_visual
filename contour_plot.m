@@ -47,6 +47,12 @@ function contour_plot(R,contourvecs,basis,options)
         % figures are not saved.
         options.savefile = "";
 
+        % resolution is a number that specifies the resolution of the
+        % figure that is saved (if options.savefile is specified), in dots
+        % per inch (dpi). Default value is 300. If set to 0, file is saved
+        % at screen resolution.
+        options.resolution = 300;
+
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
         options.fontsize = 14;
@@ -119,7 +125,8 @@ function contour_plot(R,contourvecs,basis,options)
     
     savefile = options.savefile;     fontsize = options.fontsize;
     mono_label = options.mono_label; cb_ticks = options.cb_ticks;
-    cb_rows = options.cb_rows;       phase = options.phase;           
+    cb_rows = options.cb_rows;       phase = options.phase;  
+    resolution = options.resolution; 
 
     % Ensure that the code below can access our utilities
     [filepath,~,~] = fileparts(mfilename('fullpath'));
@@ -459,7 +466,20 @@ function contour_plot(R,contourvecs,basis,options)
     
     % Save figure if a filename is provided
     if savefile ~= ""
-        saveas(gcf,savefile);
+        [~,~,ext] = fileparts(savefile);
+        if (ext == ".fig") || (ext == ".m")
+            saveas(gcf,savefile);
+        else
+            if ext == ".jpg"
+                format = "-djpeg";
+            elseif ext == ".tif"
+                format = "-dtiff";
+            else
+                format = strcat("-d", ext(2:end));
+            end
+            res = strcat("-r",num2str(resolution));
+            print(gcf,savefile,format,res);
+        end
     end
     
     hold off

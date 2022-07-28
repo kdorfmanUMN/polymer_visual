@@ -50,6 +50,12 @@ function composite_profile(R,x,y,z,dim,options)
         % for species i. If left empty (which is the default behavior), the
         % figures are not saved.
         options.savefile = "";
+
+        % resolution is a number that specifies the resolution of the
+        % figure that is saved (if options.savefile is specified), in dots
+        % per inch (dpi). Default value is 300. If set to 0, file is saved
+        % at screen resolution.
+        options.resolution = 300;
         
         % species is an array that contains the indices for each monomer
         % species to plot. So, if the data set contains 4 species but only
@@ -249,6 +255,7 @@ function composite_profile(R,x,y,z,dim,options)
         view_angle = 3;
     end
     
+    resolution = options.resolution;
     hex3 = options.hex3; 
     thick = options.thick; 
     box_clr = options.box_color;
@@ -546,7 +553,20 @@ function composite_profile(R,x,y,z,dim,options)
     
     % Save figure if a filename is provided
     if savefile ~= ""
-        saveas(gcf,savefile);
+        [~,~,ext] = fileparts(savefile);
+        if (ext == ".fig") || (ext == ".m")
+            saveas(gcf,savefile);
+        else
+            if ext == ".jpg"
+                format = "-djpeg";
+            elseif ext == ".tif"
+                format = "-dtiff";
+            else
+                format = strcat("-d", ext(2:end));
+            end
+            res = strcat("-r",num2str(resolution));
+            print(gcf,savefile,format,res);
+        end
     end
     
     % Finish up

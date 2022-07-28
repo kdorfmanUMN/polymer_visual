@@ -49,6 +49,12 @@ function line_profile(R,direc,startloc,options)
         % figures are not saved.
         options.savefile = "";
 
+        % resolution is a number that specifies the resolution of the
+        % figure that is saved (if options.savefile is specified), in dots
+        % per inch (dpi). Default value is 300. If set to 0, file is saved
+        % at screen resolution.
+        options.resolution = 300;
+
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
         options.fontsize = 14;
@@ -282,7 +288,20 @@ function line_profile(R,direc,startloc,options)
 
     % Save figure if a filename is provided
     if options.savefile ~= ""
-        saveas(gcf,options.savefile);
+        [~,~,ext] = fileparts(options.savefile);
+        if (ext == ".fig") || (ext == ".m")
+            saveas(gcf,options.savefile);
+        else
+            if ext == ".jpg"
+                format = "-djpeg";
+            elseif ext == ".tif"
+                format = "-dtiff";
+            else
+                format = strcat("-d", ext(2:end));
+            end
+            res = strcat("-r",num2str(options.resolution));
+            print(gcf,options.savefile,format,res);
+        end
     end
     
     hold off
