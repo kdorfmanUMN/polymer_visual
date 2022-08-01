@@ -1,0 +1,13 @@
+web
+edit.py
+.DS_Store
+.gitignore~
+log
+*.a
+*.o
+count
+*.pyc
+*.orig
+*.temp
+.vscode/
+*.asv
