@@ -1,5 +1,9 @@
 function [R,x,y,z,dim,lattype] = read_rgrid(filename)
 
+    % Ensure that the code below can access our utilities
+    [filepath,~,~] = fileparts(mfilename('fullpath'));
+    addpath(filepath+"/utilities")
+    
     tmp = fopen(filename);
     C = textscan(tmp,'%s','delimiter', '\n');
     C=C{1};
@@ -111,9 +115,9 @@ function [x,y,z,basis] = gen_xyz(lattype, param, grid)
     
     if strcmp(lattype,'hexagonal') == 1
         angle = [pi/2 pi/2 (2*pi)/3];
-        if dim == 3
+        if length(param) == 2 % assume 3d
             cell_d = [param(1) param(1) param(2)];
-        else % assume dim == 2, param(2) does not exist
+        else % assume 2d, param(2) does not exist
             cell_d = [param(1) param(1) param(1)];
         end
     elseif strcmp(lattype,'cubic') == 1

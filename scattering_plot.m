@@ -288,6 +288,8 @@ function scattering_plot(R,x,y,z,scatterers,options)
             perm = [2,3,1];
         elseif options.film_params(1) == 1 % normalVec == 1
             perm = [3,1,2];
+        else
+            perm = [1,2,3]; % normalVec == 2
         end
         for row = 1:size(hkls,1)
             hkls_q{row} = hkls_q{row}(:,perm);
