@@ -1,4 +1,5 @@
 - Fix voronoi
-- Get rotate3d to work on composite profile
 - Learn how isovalue calculation works and write comments to explain it
+- Add a "substrate" option
+- Add "outer box" option (and make sure axes lims match outer box)
 

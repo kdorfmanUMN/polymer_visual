@@ -42,5 +42,7 @@ function aspect_ratio = get_aspect_ratio(az,el,pb)
         aspect_ratio = width / height;
         
     end
+
+    aspect_ratio = abs(aspect_ratio);
     
 end

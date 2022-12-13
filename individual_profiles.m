@@ -114,6 +114,15 @@ function individual_profiles(R,x,y,z,dim,options)
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
 
+        % xlim, ylim, and zlim are 2-element arrays specifying the upper 
+        % and lower limits of the region to plot in the 3D composition
+        % profiles, in reduced coordinates. Default value is [0,1] for
+        % each, which plots a single unit cell. If, say, xlim = [0,2], then
+        % the profiles will show 2 unit cells along the x-direction.
+        options.xlim = [0,1];
+        options.ylim = [0,1];
+        options.zlim = [0,1];
+
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
         
@@ -189,7 +198,10 @@ function individual_profiles(R,x,y,z,dim,options)
         [R,x,y,z,basis] = thin_film_correction(R,x,y,z,...
                           options.film_params(1),options.film_params(2),...
                           options.film_params(3),options.film_params(4));
-        grid = size(R,1:3); % Update grid
+        grid = size(R,1:3) - 1; % Update grid
+        normalVec = options.film_params(1); % used by change_cell_lims
+    else
+        normalVec = -1; % indicates absence of thin film correction
     end
     
     % Get other parameters needed for composition profiles, using
@@ -235,6 +247,22 @@ function individual_profiles(R,x,y,z,dim,options)
     else
         view_angle = 3;
     end
+
+    % If user specified plot axis limits other than [0,1], adjust
+    std_lims = [0,1;0,1;0,1];
+    lims = [options.xlim;options.ylim;options.zlim];
+    if ~isequal(lims,std_lims)
+        % This option is not compatible with the hex3 option, so check to
+        % make sure hex3 is false
+        if options.hex3
+            error("cannot combine xlim, ylim, or zlim inputs with hex3")
+        end
+
+        [R,x,y,z] = change_cell_lims(R,x,y,z,xlim=options.xlim, ...
+                                     ylim=options.ylim, ...
+                                     zlim=options.zlim, ...
+                                     normalVec=normalVec);
+    end
     
     resolution = options.resolution;
     hex3 = options.hex3; 
@@ -245,6 +273,9 @@ function individual_profiles(R,x,y,z,dim,options)
     fontsize = options.fontsize;
     light_on = options.light;
     hide_axes = options.hide_axes;
+    xlims = options.xlim;
+    ylims = options.ylim;
+    zlims = options.zlim;
     clear options
     
     %% Create the composition profile for each species
@@ -254,12 +285,60 @@ function individual_profiles(R,x,y,z,dim,options)
         title(strcat(mono_label(in),' Block Density Profile'))
 
         % Plot isosurfaces, isocaps, and unit cell outlines
-        patch(isosurface(x,y,z,R(:,:,:,in),isovalue(in)), ...
-              'FaceColor',map{in}(1,:),'EdgeColor','none',...
-              'FaceAlpha',opacity(1,in));
-        fvc = isocaps(x,y,z,R(:,:,:,in),isovalue(in));
-        patch(fvc,'FaceColor','interp','EdgeColor','none',...
-              'FaceAlpha',opacity(2,in));
+        if (normalVec == -1) || ((lims(normalVec+1,1) >= 0) && ...
+           (lims(normalVec+1,2) <= 1))
+
+            % This should almost always be called
+            patch(isosurface(x,y,z,R(:,:,:,in),isovalue(in)), ...
+                  'FaceColor',map{in}(1,:),'EdgeColor','none',...
+                  'FaceAlpha',opacity(1,in));
+            patch(isocaps(x,y,z,R(:,:,:,in),isovalue(in)), ...
+                  'FaceColor','interp','EdgeColor','none', ...
+                  'FaceAlpha',opacity(2,in));
+
+        else 
+            
+            % This handles the rare case in which we need to plot multiple
+            % layers of a thin film, separated by empty space. 
+            unit_cells = get_cell_start_points(lims(normalVec+1,:),...
+                                               grid(normalVec+1)+1);
+            for i = 1:(length(unit_cells)-1)
+                bds = unit_cells(i):unit_cells(i+1)-1; % unit cell bounds
+                if normalVec == 0
+                    patch(isosurface(x(bds,:,:),y(bds,:,:),z(bds,:,:),...
+                          R(bds,:,:,in),isovalue(in)),'FaceColor',...
+                          map{in}(1,:),'EdgeColor','none','FaceAlpha',...
+                          opacity(1,in));
+                    patch(isocaps(x(bds,:,:),y(bds,:,:),z(bds,:,:),...
+                          R(bds,:,:,in),isovalue(in)),'FaceColor',...
+                          'interp','EdgeColor','none','FaceAlpha',...
+                          opacity(2,in));
+                elseif normalVec == 1
+                    patch(isosurface(x(:,bds,:),y(:,bds,:),z(:,bds,:),...
+                          R(:,bds,:,in),isovalue(in)),'FaceColor',...
+                          map{in}(1,:),'EdgeColor','none','FaceAlpha',...
+                          opacity(1,in));
+                    patch(isocaps(x(:,bds,:),y(:,bds,:),z(:,bds,:),...
+                          R(:,bds,:,in),isovalue(in)),'FaceColor',...
+                          'interp','EdgeColor','none','FaceAlpha',...
+                          opacity(2,in));
+                elseif normalVec == 2
+                    patch(isosurface(x(:,:,bds),y(:,:,bds),z(:,:,bds),...
+                          R(:,:,bds,in),isovalue(in)),'FaceColor',...
+                          map{in}(1,:),'EdgeColor','none','FaceAlpha',...
+                          opacity(1,in));
+                    patch(isocaps(x(:,:,bds),y(:,:,bds),z(:,:,bds),...
+                          R(:,:,bds,in),isovalue(in)),'FaceColor',...
+                          'interp','EdgeColor','none','FaceAlpha',...
+                          opacity(2,in));
+                else
+                    error("normalVec should be 0, 1, or 2");
+                end
+
+            end
+
+        end
+
         draw_lattice(basis,thick,box_clr);
         
         % Set colormap
@@ -323,6 +402,7 @@ function individual_profiles(R,x,y,z,dim,options)
                 size_grid = (grid(1)+1)*(grid(2)+1)*(grid(3)+1);
                 coord_set = zeros(size_grid,3);
                 counter = 0;
+                
                 for iz = 1:grid(3)+1
                     for iy = 1:grid(2)+1
                         for ix = 1:grid(1)+1
@@ -373,14 +453,15 @@ function individual_profiles(R,x,y,z,dim,options)
         % Fix data aspect ratio and set axis limits to "tight" setting
         daspect([1 1 1]);  % Equates the data aspect ratio for each axis
         axis tight;        % Snaps the axis to the data set
-
-        % Lighting options
-        %   set(p2,'AmbientStrength',.6);
-        %   set(p1,'AmbientStrength',.5);
-
-        %   isonormals(data,p1);
-        %   lightangle(45,30);
-        %   lighting phong
+    
+        % If thin film, extend axis limits to unit cell boundary
+        if normalVec == 0
+            xlim(xlims*sum(basis(:,1)));
+        elseif normalVec == 1
+            ylim(ylims*sum(basis(:,2)));
+        elseif normalVec == 2
+            zlim(zlims*sum(basis(:,3)));
+        end
         
         % Set aspect ratio of the axes to be equal to that of the plot
         pb = pbaspect; % Plot box aspect ratio
@@ -390,6 +471,9 @@ function individual_profiles(R,x,y,z,dim,options)
         ax_pos = get(gca,'Position');
         ax_pos(3) = ax_pos(4) * aspect_ratio;
         set(gca,'Position',ax_pos);
+
+        set(cbh,'Units','Points'); % Fixed units rather than reduced 
+        set(gcf,'Units','Points');
         
         if isovalue(in) < max_color % If we have a colorbar
             
@@ -402,8 +486,6 @@ function individual_profiles(R,x,y,z,dim,options)
             delete(tmp) % Delete the temporary text we plotted
 
             % Update figure size to fit everything on the figure
-            set(cbh,'Units','Points'); % Fixed units rather than reduced
-            set(gcf,'Units','Points');
             cb_pos = get(cbh,'Position');
             fig_pos = get(gcf,'position');
             % Make figure wide enough to see colorbar
@@ -415,29 +497,27 @@ function individual_profiles(R,x,y,z,dim,options)
         else
             
             % Make figure a little taller, just for aesthetics
-            set(gcf,'Units','Points');
             fig_pos = get(gcf,'position');
             fig_pos(4) = fig_pos(4) + (fontsize*1.1);
             set(gcf,'position',fig_pos);
             
         end
 
+        % Return to default units for all graphics objects
+        drawnow % this refreshes all graphics objects (processes callbacks)
+        set(gca,'Units','Normalized')
+        set(gcf,'Units','Normalized')
+        set(cbh,'Units','Normalized','Location','Manual')
+
         % Add light if desired
         if light_on
             light('position',[-1 -1 1]);
+            lighting("gouraud");
         end
     
         % Hide axes if desired
         if hide_axes
             set(gca,'visible','off')
-        end
-        
-        % Save figure if a filename is provided
-        if savefile ~= ""
-            [f_path,f_name,f_ext] = fileparts(savefile);
-            save_filename = fullfile(f_path, ...
-                                strcat(f_name,mono_label(in),f_ext));
-            saveas(gcf,save_filename);
         end
 
         % Save figure if a filename is provided
@@ -460,7 +540,10 @@ function individual_profiles(R,x,y,z,dim,options)
             end
         end
         
+        % Prep figure for interactive use
         rotate3d on
+
+        drawnow
         hold off
 
     end

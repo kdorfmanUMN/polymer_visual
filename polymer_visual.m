@@ -95,6 +95,17 @@ function polymer_visual(filename,options)
         % box_color is the value for "color" used to draw the outer box of
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
+
+        % xlim, ylim, and zlim are 2-element arrays specifying the upper 
+        % and lower limits of the region to plot in the 3D composition
+        % profiles, in reduced coordinates. Default value is [0,1] for
+        % each, which plots a single unit cell. If, say, xlim = [0,2], then
+        % the profiles will show 2 unit cells along the x-direction.
+        % This only affects the 3D composition profiles, not the contour
+        % plots, line profiles, or scattering plot.
+        options.xlim = [0,1];
+        options.ylim = [0,1];
+        options.zlim = [0,1];
         
         % species is an array that contains the indices for each monomer
         % species to plot on the composite density profile. So, if the data
@@ -267,7 +278,8 @@ function polymer_visual(filename,options)
                         "light",options.light,"hide_axes",...
                         options.hide_axes,"view",options.view,...
                         "film_params",options.film_params,"resolution",...
-                        options.resolution);
+                        options.resolution,"xlim",options.xlim,"ylim",...
+                        options.ylim,"zlim",options.zlim);
 
     % Draw the Composite Density Profile
     composite_profile(R,x,y,z,dim,"isovalue",options.isovalue,"map",...
@@ -281,7 +293,8 @@ function polymer_visual(filename,options)
                       options.cb_rows,"light",options.light,"hide_axes",...
                       options.hide_axes,"view",options.view,...
                       "film_params",options.film_params,"resolution",...
-                      options.resolution);
+                      options.resolution,"xlim",options.xlim,"ylim",...
+                      options.ylim,"zlim",options.zlim);
 
     % Draw the scattering plot
     if options.savefile ~= ""

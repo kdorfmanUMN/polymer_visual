@@ -120,6 +120,15 @@ function composite_profile(R,x,y,z,dim,options)
         % box_color is the value for "color" used to draw the outer box of
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
+
+        % xlim, ylim, and zlim are 2-element arrays specifying the upper 
+        % and lower limits of the region to plot in the 3D composition
+        % profiles, in reduced coordinates. Default value is [0,1] for
+        % each, which plots a single unit cell. If, say, xlim = [0,2], then
+        % the profiles will show 2 unit cells along the x-direction.
+        options.xlim = [0,1];
+        options.ylim = [0,1];
+        options.zlim = [0,1];
         
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -202,7 +211,10 @@ function composite_profile(R,x,y,z,dim,options)
         [R,x,y,z,basis] = thin_film_correction(R,x,y,z,...
                           options.film_params(1),options.film_params(2),...
                           options.film_params(3),options.film_params(4));
-        grid = size(R,1:3); % Update grid
+        grid = size(R,1:3) - 1; % Update grid
+        normalVec = options.film_params(1); % used by change_cell_lims
+    else
+        normalVec = -1; % indicates absence of thin film correction
     end
     
     % Get other parameters needed for composition profiles, using
@@ -212,6 +224,7 @@ function composite_profile(R,x,y,z,dim,options)
     else
         species = 1:n_mnr;
     end
+    n_species = length(species);
     
     if isfield(options,'mono_label')
         mono_label = options.mono_label;
@@ -254,6 +267,23 @@ function composite_profile(R,x,y,z,dim,options)
     else
         view_angle = 3;
     end
+
+    % If user specified plot axis limits other than [0,1], adjust
+    std_lims = [0,1;0,1;0,1];
+    lims = [options.xlim;options.ylim;options.zlim];
+    if ~isequal(std_lims,lims)
+
+        % This option is not compatible with the hex3 option, so check to
+        % make sure hex3 is false
+        if options.hex3
+            error("cannot combine xlim, ylim, or zlim inputs with hex3")
+        end
+
+        [R,x,y,z] = change_cell_lims(R,x,y,z,xlim=options.xlim, ...
+                                     ylim=options.ylim, ...
+                                     zlim=options.zlim, ...
+                                     normalVec=normalVec);
+    end
     
     resolution = options.resolution;
     hex3 = options.hex3; 
@@ -265,17 +295,24 @@ function composite_profile(R,x,y,z,dim,options)
     cb_rows = options.cb_rows;
     light_on = options.light;
     hide_axes = options.hide_axes;
+    xlims = options.xlim;
+    ylims = options.ylim;
+    zlims = options.zlim;
     clear options
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     %% Create composite density profile
     
-    figure(); 
+    fig = figure(); ax_main = axes();
     hold on; 
-    set(gca,'fontsize',fontsize);
+    set(ax_main,'fontsize',fontsize);
+    
+    % Get title position in absolute units (points)
     t = title("Composite Density Profile");
     set(t,"Units","Points");
     t_size = get(t,"extent");
+    set(t,"Units","Normalized");
+
     % Concatenate elements of map into a single long colormap called newmap
     if size(map,1) == 1 % if map is a horizontal cell array
         newmap = cell2mat(map(1:n_mnr)');
@@ -305,6 +342,14 @@ function composite_profile(R,x,y,z,dim,options)
         % D, where we also add an additional constant (zero_val) to ensure
         % that none of the data range of species i overlaps with that of
         % species j, for any i ≠ j.
+
+        % ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        % If this monomer index is not in the species array, skip to next
+        % iteration of the for loop
+        if ~ismember(in,species)
+            continue;
+        end
         
         max_comps(in) = max(R(:,:,:,in),[],'all');
         range = max_comps(in) - isovalue(in);
@@ -319,13 +364,58 @@ function composite_profile(R,x,y,z,dim,options)
         zero_val = zero_val + cmap_size;
         
         % Plot rescaled data for this species
-        if ismember(in,species)
-            patch(isosurface(x,y,z,D(:,:,:,in),newisovalue(in)), ...
+        if (normalVec == -1) || ((lims(normalVec+1,1) >= 0) && ...
+           (lims(normalVec+1,2) <= 1))
+            
+            % This should almost always be called
+            patch(isosurface(x,y,z,D(:,:,:,in),newisovalue(in)),...
                   'FaceColor',map{in}(1,:),'EdgeColor','none',...
                   'FaceAlpha',opacity(1,in));
             patch(isocaps(x,y,z,D(:,:,:,in),newisovalue(in)), ...
                   'FaceColor','interp','EdgeColor','none',...
                   'FaceAlpha',opacity(2,in));
+
+        else 
+            
+            % This handles the rare case in which we need to plot multiple
+            % layers of a thin film, separated by empty space. 
+            unit_cells = get_cell_start_points(lims(normalVec+1,:),...
+                                               grid(normalVec+1)+1);
+            for i = 1:(length(unit_cells)-1)
+                bds = unit_cells(i):unit_cells(i+1)-1; % unit cell bounds
+                if normalVec == 0
+                    patch(isosurface(x(bds,:,:),y(bds,:,:),z(bds,:,:),...
+                          D(bds,:,:,in),newisovalue(in)),'FaceColor',...
+                          map{in}(1,:),'EdgeColor','none','FaceAlpha',...
+                          opacity(1,in));
+                    patch(isocaps(x(bds,:,:),y(bds,:,:),z(bds,:,:),...
+                          D(bds,:,:,in),newisovalue(in)),'FaceColor',...
+                          'interp','EdgeColor','none','FaceAlpha',...
+                          opacity(2,in));
+                elseif normalVec == 1
+                    patch(isosurface(x(:,bds,:),y(:,bds,:),z(:,bds,:),...
+                          D(:,bds,:,in),newisovalue(in)),'FaceColor',...
+                          map{in}(1,:),'EdgeColor','none','FaceAlpha',...
+                          opacity(1,in));
+                    patch(isocaps(x(:,bds,:),y(:,bds,:),z(:,bds,:),...
+                          D(:,bds,:,in),newisovalue(in)),'FaceColor',...
+                          'interp','EdgeColor','none','FaceAlpha',...
+                          opacity(2,in));
+                elseif normalVec == 2
+                    patch(isosurface(x(:,:,bds),y(:,:,bds),z(:,:,bds),...
+                          D(:,:,bds,in),newisovalue(in)),'FaceColor',...
+                          map{in}(1,:),'EdgeColor','none','FaceAlpha',...
+                          opacity(1,in));
+                    patch(isocaps(x(:,:,bds),y(:,:,bds),z(:,:,bds),...
+                          D(:,:,bds,in),newisovalue(in)),'FaceColor',...
+                          'interp','EdgeColor','none','FaceAlpha',...
+                          opacity(2,in));
+                else
+                    error("normalVec should be 0, 1, or 2");
+                end
+
+            end
+
         end
         
         view(view_angle); % Set view angle
@@ -407,37 +497,45 @@ function composite_profile(R,x,y,z,dim,options)
     % Fix data aspect ratio and set axis limits to "tight" setting
     daspect([1 1 1]);  % Equates the data aspect ratio for each axis
     axis tight;        % Snaps the axis to the data set
+
+    % If thin film, extend axis limits to unit cell boundary
+    if normalVec == 0
+        xlim(ax_main,xlims*sum(basis(:,1)));
+    elseif normalVec == 1
+        ylim(ax_main,ylims*sum(basis(:,2)));
+    elseif normalVec == 2
+        zlim(ax_main,zlims*sum(basis(:,3)));
+    end
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     %% Create colorbars and make them look good
-    ax(n_mnr+1) = gca; % Save the current axis so we can reference it
     tmp = colorbar; % Create temporary colorbar in the default position
-    set(ax(n_mnr+1),"Units","Points") % Absolute units rather than reduced
+    set(ax_main,"Units","Points") % Absolute units rather than reduced
     set(tmp,"Units","Points")         % Absolute units rather than reduced
     
     % Below, we find the aspect ratio of the 2D projection of our 3D plot,
     % which depends on the viewing angle. We will then set the width/height
     % of our axes object to match this aspect ratio, which allows the plot
     % to have the same height and left-edge position regardless of unit
-    % cell parameters. This is explained further in the documentation.
+    % cell parameters. 
     
     pb = pbaspect; % Plot box aspect ratio
     [az,el] = view(); % viewing angle
     aspect_ratio = get_aspect_ratio(az,el,pb); % aspect ratio of plot
     
     % Fix the axes to reflect the correct aspect ratio
-    ax_pos = get(ax(n_mnr+1),"Position"); % Get current axes position
+    ax_pos = get(ax_main,"Position"); % Get current axes position
     ax_pos(3) = ax_pos(4) * aspect_ratio; % Fix aspect ratio
     if ax_pos(3) < t_size(3)
         ax_pos(3) = t_size(3);
     end
     
-    set(ax(n_mnr+1),"Position",ax_pos);   % Apply adjusted axes position
+    set(ax_main,"Position",ax_pos);   % Apply adjusted axes position
     delete(tmp) % Delete the temporary colorbar that we used to move the 
                 % axes leftward
     
     % Set up for the case of multiple rows of colorbars
-    n_cbars = length(species);
+    n_cbars = n_species;
     ncol = ceil(n_cbars/cb_rows);
     if cb_rows > 1 % If we need to calculate positions of multiple cb rows
         
@@ -504,13 +602,13 @@ function composite_profile(R,x,y,z,dim,options)
                 colormap(ax(in),map{in});
 
                 % Create the colorbar
-                cb = colorbar(ax(in));
+                cb(in) = colorbar(ax(in)); %#ok<AGROW> 
                 cb_pos = [cb_x,cb_y(row),22,cb_h];
-                set(cb,"axislocation","out","Units","Points",...
+                set(cb(in),"axislocation","out","Units","Points",...
                     "ytick",l_lngth,"ticklabels",cblabel,...
                     "fontsize",fontsize,"Position",cb_pos,"color","k");
                 title1 = strcat('\phi','_',mono_label(in));
-                title(cb,title1,'fontsize',fontsize*1.1);
+                title(cb(in),title1,'fontsize',fontsize*1.1);
                 
                 % Estimate the width of our ticklabels, and if it is larger
                 % than txt_width then update txt_width
@@ -532,30 +630,33 @@ function composite_profile(R,x,y,z,dim,options)
     end
     
     % Update figure size to show everything we want to show
-    set(gcf,'Units','Points');
-    fig_pos = get(gcf,'position');
+    set(fig,'Units','Points');
+    fig_pos = get(fig,'position');
     fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
     % Make figure taller to fit cb titles
     fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
-    set(gcf,'position',fig_pos);
-    set(gcf,'currentaxes',ax(n_mnr+1))
+    set(fig,'position',fig_pos);
+
+    drawnow % this refreshes all graphics objects (processes callbacks).
+            % The colorbars end up too big if we don't call this here
 
     % Add light if desired
     if light_on
         light('position',[-1 -1 1]);
         light('position',[-1 -1 1]);
+        lighting("gouraud");
     end
 
     % Hide axes if desired
     if hide_axes
-        set(gca,'visible','off')
+        set(ax_main,'visible','off')
     end
     
     % Save figure if a filename is provided
     if savefile ~= ""
         [~,~,ext] = fileparts(savefile);
         if (ext == ".fig") || (ext == ".m")
-            saveas(gcf,savefile);
+            saveas(fig,savefile);
         else
             if ext == ".jpg"
                 format = "-djpeg";
@@ -565,12 +666,25 @@ function composite_profile(R,x,y,z,dim,options)
                 format = strcat("-d", ext(2:end));
             end
             res = strcat("-r",num2str(resolution));
-            print(gcf,savefile,format,res);
+            print(fig,savefile,format,res);
         end
     end
     
-    % Finish up
-    rotate3d on
-    hold off
+    % Prep figure for interactive use
+    set(ax_main,'Units','Normalized')
+    set(fig,'Units','Normalized')
+    for is = 1:n_species
+        in = species(is);
+        % Set units back to normalized so that the axes and 
+        % colorbars will change size correctly when the size of
+        % the figure is modified
+        set(ax(in),"Units","Normalized");
+        set(cb(in),"Units","Normalized");
+    end
+    rotate3d on;
+    uistack(ax_main,'top') % Allows rotate3d to rotate the main axis
     
+    drawnow
+    hold off
+
 end

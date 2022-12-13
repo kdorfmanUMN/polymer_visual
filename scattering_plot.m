@@ -223,16 +223,14 @@ function scattering_plot(R,x,y,z,scatterers,options)
             counter = counter + 1;
         end
     end
-
+    
     % Write scattering data to a text file, if writefile is provided
     if options.writefile ~= ""
         writefile = fopen(options.writefile,'w');
         filestring = "%i\t%i\t%i\t%.5f\t%.6e\n";
         fprintf(writefile,"h\tk\tl\tq\tI(q)\n");
         for id = 1:size(I,1)
-            if I(id) > 1e-2
-                fprintf(writefile,filestring,hkls(id,:),q(id),I(id));
-            end
+            fprintf(writefile,filestring,hkls(id,:),q(id),I(id));
         end
         fclose(writefile);
     end

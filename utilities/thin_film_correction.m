@@ -65,16 +65,16 @@ function [R,x,y,z,basis] = thin_film_correction(R,x,y,z,normalVec,t,T,...
             basis = basis(:,[3,1,2]);
         end % if normalVec == 2 do nothing
     end
-    grid = size(x);
+    grid = size(x)-1;
     L = norm(basis(normalVec+1,:));
 
     % Correct data so that the sum of all polymer species adds to 1, even
     % in the "wall" area
-    for ix = 1:grid(1)
-        for iy = 1:grid(2)
-            for iz = 1:grid(3)
+    for ix = 1:grid(1)+1
+        for iy = 1:grid(2)+1
+            for iz = 1:grid(3)+1
                 pos = [ix,iy,iz];
-                d = (pos(normalVec+1)-1) * L / (grid(normalVec+1)-1);
+                d = (pos(normalVec+1)-1) * L / (grid(normalVec+1));
                 rho_w = 0.5*(1+tanh(4*(((.5*(T-L))+abs(d-(L/2)))/t)));
                 
                 if rho_w <= 0.5
