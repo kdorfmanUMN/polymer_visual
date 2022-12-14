@@ -121,14 +121,15 @@ function composite_profile(R,x,y,z,dim,options)
         % the unit cell. Default is gray.
         options.box_color = [0.5,0.5,0.5]
 
-        % xlim, ylim, and zlim are 2-element arrays specifying the upper 
+        % alim, blim, and clim are 2-element arrays specifying the upper 
         % and lower limits of the region to plot in the 3D composition
         % profiles, in reduced coordinates. Default value is [0,1] for
-        % each, which plots a single unit cell. If, say, xlim = [0,2], then
-        % the profiles will show 2 unit cells along the x-direction.
-        options.xlim = [0,1];
-        options.ylim = [0,1];
-        options.zlim = [0,1];
+        % each, which plots a single unit cell. If, say, alim = [0,2], then
+        % the profiles will show 2 unit cells along the direction of the 
+        % lattice basis vector a.
+        options.alim = [0,1];
+        options.blim = [0,1];
+        options.clim = [0,1];
         
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -270,18 +271,18 @@ function composite_profile(R,x,y,z,dim,options)
 
     % If user specified plot axis limits other than [0,1], adjust
     std_lims = [0,1;0,1;0,1];
-    lims = [options.xlim;options.ylim;options.zlim];
+    lims = [options.alim;options.blim;options.clim];
     if ~isequal(std_lims,lims)
 
         % This option is not compatible with the hex3 option, so check to
         % make sure hex3 is false
         if options.hex3
-            error("cannot combine xlim, ylim, or zlim inputs with hex3")
+            error("cannot combine alim, blim, or clim inputs with hex3")
         end
 
-        [R,x,y,z] = change_cell_lims(R,x,y,z,xlim=options.xlim, ...
-                                     ylim=options.ylim, ...
-                                     zlim=options.zlim, ...
+        [R,x,y,z] = change_cell_lims(R,x,y,z,alim=options.alim, ...
+                                     blim=options.blim, ...
+                                     clim=options.clim, ...
                                      normalVec=normalVec);
     end
     
@@ -295,9 +296,9 @@ function composite_profile(R,x,y,z,dim,options)
     cb_rows = options.cb_rows;
     light_on = options.light;
     hide_axes = options.hide_axes;
-    xlims = options.xlim;
-    ylims = options.ylim;
-    zlims = options.zlim;
+    alims = options.alim;
+    blims = options.blim;
+    clims = options.clim;
     clear options
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -500,11 +501,11 @@ function composite_profile(R,x,y,z,dim,options)
 
     % If thin film, extend axis limits to unit cell boundary
     if normalVec == 0
-        xlim(ax_main,xlims*sum(basis(:,1)));
+        xlim(ax_main,alims*sum(basis(:,1)));
     elseif normalVec == 1
-        ylim(ax_main,ylims*sum(basis(:,2)));
+        ylim(ax_main,blims*sum(basis(:,2)));
     elseif normalVec == 2
-        zlim(ax_main,zlims*sum(basis(:,3)));
+        zlim(ax_main,clims*sum(basis(:,3)));
     end
     
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -594,7 +595,7 @@ function composite_profile(R,x,y,z,dim,options)
                 l_lngth = linspace(0,1,cb_ticks);
 
                 % Create a new invisible axes object for this colorbar
-                ax(in) = axes("Units","Points");
+                ax(in) = axes("Units","Points"); %#ok<AGROW> 
                 set(ax(in),"Visible","off","XTick",[],"YTick",[],...
                     "ZTick",[],"InnerPosition",ax_pos);
 

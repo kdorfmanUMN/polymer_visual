@@ -1,7 +1,7 @@
 % This function accepts arrays R, x, y, and z representing the data
 % and gridpoint coordinates for an SCFT solution in a single unit
 % cell, and generates new arrays R2, x2, y2, and z2 with different
-% boundaries as specified by inputs xlim, ylim, and zlim. Periodic
+% boundaries as specified by inputs alim, blim, and clim. Periodic
 % boundary conditions are assumed in order to extend outside of a 
 % single unit cell. If the cell limit defined by the user is not on 
 % a gridpoint, we round that cell limit to the nearest value that 
@@ -14,9 +14,9 @@ function [R2,x2,y2,z2] = change_cell_lims(R,x,y,z,options)
         x
         y
         z
-        options.xlim = [0,1];
-        options.ylim = [0,1];
-        options.zlim = [0,1];
+        options.alim = [0,1];
+        options.blim = [0,1];
+        options.clim = [0,1];
 
         % normalVec is used only when plotting thin films, so that we 
         % don't enforce periodic behavior in the direction normal to
@@ -31,9 +31,9 @@ function [R2,x2,y2,z2] = change_cell_lims(R,x,y,z,options)
 
     end
 
-    % If xlim, ylim, and zlim are all [0,1], no modifications are needed
-    if isequal(options.xlim,[0,1]) && isequal(options.ylim,[0,1]) && ...
-       isequal(options.zlim,[0,1])
+    % If alim, blim, and clim are all [0,1], no modifications are needed
+    if isequal(options.alim,[0,1]) && isequal(options.blim,[0,1]) && ...
+       isequal(options.clim,[0,1])
         R2 = R; x2 = x; y2 = y; z2 = z;
         return
     end
@@ -56,31 +56,31 @@ function [R2,x2,y2,z2] = change_cell_lims(R,x,y,z,options)
         grid(3) = grid(3) + 1;
     end
     
-    % determine xlim, ylim, and zlim in grid coordinates
-    xlim_grid = round(options.xlim * grid(1));
-    ylim_grid = round(options.ylim * grid(2));
-    zlim_grid = round(options.zlim * grid(3));
+    % determine alim, blim, and clim in grid coordinates
+    alim_grid = round(options.alim * grid(1));
+    blim_grid = round(options.blim * grid(2));
+    clim_grid = round(options.clim * grid(3));
     
     % Create empty arrays to store new data
-    R2 = zeros(xlim_grid(2)-xlim_grid(1)+1, ylim_grid(2)-ylim_grid(1)+1,...
-               zlim_grid(2)-zlim_grid(1)+1, size(R,4));
-    x2 = zeros(xlim_grid(2)-xlim_grid(1)+1, ylim_grid(2)-ylim_grid(1)+1,...
-               zlim_grid(2)-zlim_grid(1)+1);
-    y2 = zeros(xlim_grid(2)-xlim_grid(1)+1, ylim_grid(2)-ylim_grid(1)+1,...
-               zlim_grid(2)-zlim_grid(1)+1);
-    z2 = zeros(xlim_grid(2)-xlim_grid(1)+1, ylim_grid(2)-ylim_grid(1)+1,...
-               zlim_grid(2)-zlim_grid(1)+1);
+    R2 = zeros(alim_grid(2)-alim_grid(1)+1, blim_grid(2)-blim_grid(1)+1,...
+               clim_grid(2)-clim_grid(1)+1, size(R,4));
+    x2 = zeros(alim_grid(2)-alim_grid(1)+1, blim_grid(2)-blim_grid(1)+1,...
+               clim_grid(2)-clim_grid(1)+1);
+    y2 = zeros(alim_grid(2)-alim_grid(1)+1, blim_grid(2)-blim_grid(1)+1,...
+               clim_grid(2)-clim_grid(1)+1);
+    z2 = zeros(alim_grid(2)-alim_grid(1)+1, blim_grid(2)-blim_grid(1)+1,...
+               clim_grid(2)-clim_grid(1)+1);
     
     % Loop through all gridpoints in the new cell limits and
     % store correct data in R2, x2, y2, and z2.
     ix = 0; iy = 0; iz = 0;
-    for xg = xlim_grid(1):xlim_grid(2)
+    for xg = alim_grid(1):alim_grid(2)
         ix = ix + 1;
         x_cell = fit_in_cell(xg+1,grid(1));
-        for yg = ylim_grid(1):ylim_grid(2)
+        for yg = blim_grid(1):blim_grid(2)
             iy = iy + 1;
             y_cell = fit_in_cell(yg+1,grid(2));
-            for zg = zlim_grid(1):zlim_grid(2)
+            for zg = clim_grid(1):clim_grid(2)
                 iz = iz + 1;
                 z_cell = fit_in_cell(zg+1,grid(3));
     
