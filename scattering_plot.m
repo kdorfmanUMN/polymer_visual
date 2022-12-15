@@ -2,7 +2,7 @@
 % structure in the PSCF output by taking the Fourier transform of the
 % real-space compositions.
 
-function scattering_plot(R,x,y,z,scatterers,options)
+function scattering_plot(R,x,y,z,options)
     
     arguments
         % The first parameter of this function, R, is "overloaded". This
@@ -36,16 +36,16 @@ function scattering_plot(R,x,y,z,scatterers,options)
         x = []
         y = []
         z = []
+
+        % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        % The rest of the inputs are optional name-value pair inputs:
         
-        % The optional array scatterers is where the user can specify which
+        % The array scatterers is where the user can specify which
         % species to use as the scattering objects for our Fourier
         % transform. If an array is provided (e.g. [1,2]), the
         % compositions of species 1 and 2 will be added together, and the
         % sum will be used in the Fourier Transform.
-        scatterers = 1;
-        
-        % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        % The rest of the inputs are optional name-value pair inputs:
+        options.scatterers = 1;
 
         % savefile is a filename to which the figures will be saved.
         % The file extension provided (e.g. ".fig" or ".png") will be used
@@ -182,7 +182,7 @@ function scattering_plot(R,x,y,z,scatterers,options)
     % all scatterers at gridpoint i,j,k. This allows users to specify
     % multiple species as scatterers (i.e. both A and C scatter equally).
     D = zeros(size(x));
-    for s = scatterers
+    for s = options.scatterers
         D = D + R(:,:,:,s);
     end
 
@@ -375,7 +375,8 @@ function scattering_plot(R,x,y,z,scatterers,options)
             elseif ext == ".tif"
                 format = "-dtiff";
             else
-                format = strcat("-d", ext(2:end));
+                disp(ext(2:end))
+                format = strcat("-d", extractAfter(ext,1));
             end
             res = strcat("-r",num2str(options.resolution));
             print(gcf,options.savefile,format,res);

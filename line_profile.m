@@ -297,7 +297,7 @@ function line_profile(R,direc,startloc,options)
             elseif ext == ".tif"
                 format = "-dtiff";
             else
-                format = strcat("-d", ext(2:end));
+                format = strcat("-d", extractAfter(ext,1));
             end
             res = strcat("-r",num2str(options.resolution));
             print(gcf,options.savefile,format,res);

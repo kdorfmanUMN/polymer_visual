@@ -664,7 +664,7 @@ function composite_profile(R,x,y,z,dim,options)
             elseif ext == ".tif"
                 format = "-dtiff";
             else
-                format = strcat("-d", ext(2:end));
+                format = strcat("-d", extractAfter(ext,1));
             end
             res = strcat("-r",num2str(resolution));
             print(fig,savefile,format,res);

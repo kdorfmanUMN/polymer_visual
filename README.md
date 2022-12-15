@@ -272,13 +272,12 @@ The function `contour_plot` plots a 2D density profile of all species at points 
 
 ## Scattering Plots
 
-The function `scattering_plot` plots the predicted scattering peak intensities for a multi-grain, randomly oriented sample of the structure represented by the data. It does this by simply taking the Fourier Transform of the real-space data for a certain monomer species (or set of monomer species) that are denoted as the "scattering species," and plotting the peaks of the FT with large values alongside their corresponding Miller indices.
+The function `scattering_plot` plots the predicted scattering peak intensities for a multi-grain, randomly oriented sample of the structure represented by the data. It does this by simply taking the Fourier Transform of the real-space data for a certain monomer species (or set of monomer species) that are denoted as the "scattering species," and plotting the peaks of the FT as a function of the scattering vector length q, alongside their corresponding Miller indices.
 
 |Syntax|Description|
 |---|---|
 |`scattering_plot(filename)` | Plot a 3D density profile showing all species in the system on the same axes, for the system described by the r-grid file indicated by filename.|
 |`scattering_plot(R,x,y,z)` | Plot a 3D density profile showing all species in the system on the same axes, for the system described by the 4-dimensional matrix R. Matrices x, y, and z contain the x, y, and z coordinates of the gridpoints.|
-|`scattering_plot(____,scatterers)` | Specify the array scatterers, which indicates which species are the scattering species, after all the arguments in either of the previous syntaxes. Otherwise, the first species is assumed to be the scattering species.|
 |`scattering_plot(____,Name,Value)` | Specify the name-value arguments after all the arguments in any of the previous syntaxes.|
 
 ### Input Arguments:
@@ -290,12 +289,12 @@ The function `scattering_plot` plots the predicted scattering peak intensities f
 |`x`|3-dimensional matrix containing the x-coordinate of each gridpoint. If the mesh dimensions are X by Y by Z, then the size of `x` should be (X,Y,Z). `x(i,j,k)` corresponds to the x-coordinate of gridpoint (i,j,k).|
 |`y`|Identical to `x` except containing the y-coordinates.|
 |`z`|Identical to `x` except containing the z-coordinates.|
-|`scatterers`|Vector containing the index of each species that is to be considered a "scattering species." If species 3 is the only scattering species, then scatterers = 3. If species 1 and 3 are both considered scattering species, then scatterers = [1,3]. Default value is 1 (only the first species is a scattering species).|
 
 ### Name-Value Pair Arguments:
 
 |Name|Description|
 |---|---|
+|`scatterers`|Vector containing the index of each species that is to be considered a "scattering species" (i.e., each species that exhibits scattering contrast with the species that aren't included in this array). If species 3 is the only scattering species, then scatterers = 3. If species 1 and 3 are both considered scattering species, then scatterers = [1,3]. Default value is 1 (only the first species is a scattering species). If there are only two components in the system, the scattering profile will be identical regardless of whether scatterers = 1 or 2.|
 |`savefile`| A filename to which the figures will be saved. The file extension provided (e.g. ".fig" or ".png") will be used to determine the type of file to save.|
 |`resolution`| A number that specifies the resolution of the figure that is saved (if savefile is specified), in dots per inch (dpi). Default value is 300. If set to 0, file is saved at screen resolution.|
 |`writefile`| A filename to which the scattering data (peak intensities for each hkl value) can be written as text. This is useful if you want to do further analyses of the data.|

@@ -525,7 +525,7 @@ function individual_profiles(R,x,y,z,dim,options)
         if savefile ~= ""
             [f_path,f_name,ext] = fileparts(savefile);
             save_filename = fullfile(f_path, ...
-                                strcat(f_name,mono_label(in),f_ext));
+                                strcat(f_name,mono_label(in),ext));
             if (ext == ".fig") || (ext == ".m")
                 saveas(gcf,save_filename);
             else
@@ -534,7 +534,7 @@ function individual_profiles(R,x,y,z,dim,options)
                 elseif ext == ".tif"
                     format = "-dtiff";
                 else
-                    format = strcat("-d", ext(2:end));
+                    format = strcat("-d", extractAfter(ext,1));
                 end
                 res = strcat("-r",num2str(resolution));
                 print(gcf,save_filename,format,res);
