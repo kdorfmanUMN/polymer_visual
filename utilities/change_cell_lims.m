@@ -47,6 +47,11 @@ function [R2,x2,y2,z2] = change_cell_lims(R,x,y,z,options)
     grid_bulk = size(x)-1;
     grid = grid_bulk;
 
+    % determine alim, blim, and clim in grid coordinates
+    alim_grid = round(options.alim * grid(1));
+    blim_grid = round(options.blim * grid(2));
+    clim_grid = round(options.clim * grid(3));
+
     % Check if this is a thin film and correct grid if necessary
     if normalVec == 0
         grid(1) = grid(1) + 1;
@@ -55,11 +60,6 @@ function [R2,x2,y2,z2] = change_cell_lims(R,x,y,z,options)
     elseif normalVec == 2
         grid(3) = grid(3) + 1;
     end
-    
-    % determine alim, blim, and clim in grid coordinates
-    alim_grid = round(options.alim * grid(1));
-    blim_grid = round(options.blim * grid(2));
-    clim_grid = round(options.clim * grid(3));
     
     % Create empty arrays to store new data
     R2 = zeros(alim_grid(2)-alim_grid(1)+1, blim_grid(2)-blim_grid(1)+1,...
