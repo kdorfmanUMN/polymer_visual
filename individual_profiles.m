@@ -259,10 +259,10 @@ function individual_profiles(R,x,y,z,dim,options)
             error("cannot combine alim, blim, or clim inputs with hex3")
         end
 
-        [R,x,y,z] = change_cell_lims(R,x,y,z,alim=options.alim, ...
-                                     blim=options.blim, ...
-                                     clim=options.clim, ...
-                                     normalVec=normalVec);
+        [R,x,y,z] = change_cell_lims(R,x,y,z,'alim',options.alim, ...
+                                     'blim',options.blim, ...
+                                     'clim',options.clim, ...
+                                     'normalVec',normalVec);
     end
     
     resolution = options.resolution;
@@ -513,7 +513,7 @@ function individual_profiles(R,x,y,z,dim,options)
         % Add light if desired
         if light_on
             light('position',[-1 -1 1]);
-            lighting("gouraud");
+            lighting gouraud;
         end
     
         % Hide axes if desired
