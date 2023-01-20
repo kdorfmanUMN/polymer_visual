@@ -105,6 +105,9 @@ function scattering_plot(R,x,y,z,options)
         % been corrected as desired by the user.
         options.film_params;
         
+        % KDD option to turn off the labeling of the peaks
+        options.no_labels = false;
+        
     end
     
     % Ensure that the code below can access our utilities
@@ -318,10 +321,11 @@ function scattering_plot(R,x,y,z,options)
                                 strjoin(string(hkls_q{row}(id,:)),""),")");
                 end
             end
-            hkl = text(twotheta(row),I(row)*1.05,hkl_label,...
+            if options.no_labels == false
+                hkl = text(twotheta(row),I(row)*1.05,hkl_label,...
                        'fontsize',options.fontsize*0.9);
-            set(hkl,"rotation",90)
-            
+                set(hkl,"rotation",90)
+            end
         end
         
         xlabel('2\theta [°]')
@@ -342,9 +346,11 @@ function scattering_plot(R,x,y,z,options)
                                 strjoin(string(hkls_q{row}(id,:)),""),")");
                 end
             end
-            hkl = text(q(row),I(row)*1.05,hkl_label,...
+            if options.no_labels == false
+                hkl = text(q(row),I(row)*1.05,hkl_label,...
                        'fontsize',options.fontsize*0.9);
-            set(hkl,"rotation",90)
+                set(hkl,"rotation",90)
+            end
 
         end
         
