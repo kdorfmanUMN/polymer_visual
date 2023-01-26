@@ -105,7 +105,7 @@ function scattering_plot(R,x,y,z,options)
         % been corrected as desired by the user.
         options.film_params;
         
-        % KDD option to turn off the labeling of the peaks
+        % Option to turn off the labeling of the peaks
         options.no_labels = false;
         
     end
