@@ -33,7 +33,7 @@ function [R,x,y,z,basis] = thin_film_correction(R,x,y,z,normalVec,t,T,...
         y               {mustBeNumeric} % y-coordinates
         z               {mustBeNumeric} % z-coordinates
         normalVec (1,1) {mustBeNumeric} % Which lattice vector is normal to
-                                        % the wall? (0, 1, or 2)
+                                        % the wall? 0 (a), 1 (b), or 2 (c)
         t         (1,1) {mustBeNumeric} % interface thickness
         T         (1,1) {mustBeNumeric} % wall thickness
         
@@ -58,12 +58,23 @@ function [R,x,y,z,basis] = thin_film_correction(R,x,y,z,normalVec,t,T,...
     % (actually, we are permuting the coords, but it's a similar effect)
     if rotate
         if normalVec == 0
-            tmp = x; x = y; y = z; z = tmp; clear tmp;
-            basis = basis(:,[2,3,1]);
+            R = permute(R,[2,3,1,4]);
+            tmp = x;
+            x = permute(y,[2,3,1]);
+            y = permute(z,[2,3,1]);
+            z = permute(tmp,[2,3,1]);
+            clear tmp;
+            basis = basis([2,3,1],[2,3,1]);
         elseif normalVec == 1
-            tmp = x; x = z; z = y; y = tmp; clear tmp;
-            basis = basis(:,[3,1,2]);
+            R = permute(R,[3,1,2,4]);
+            tmp = x;
+            x = permute(z,[3,1,2]);
+            z = permute(y,[3,1,2]);
+            y = permute(tmp,[3,1,2]);
+            clear tmp;
+            basis = basis([3,1,2],[3,1,2]);
         end % if normalVec == 2 do nothing
+        normalVec = 2;
     end
     grid = size(x)-1;
     L = norm(basis(normalVec+1,:));

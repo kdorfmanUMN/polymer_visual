@@ -1,0 +1,75 @@
+These examples are chosen to span a broad range
+of different systems that we may wish to plot in 
+polymer_visual. The r-grid files are described in
+brief below:
+
+lam.rf:
+   a 1D lamellar structure composed of symmetric
+   AB diblocks. The simplest structure to study
+   numerically. Projected into 3 dimensions in
+   order to get a full 3D visualization when 
+   used in polymer_visual.
+   To view the composition profiles as 2D 
+   graphics rather than 3D, set the Name-Value 
+   input "view" equal to 2.
+
+hex.rf:
+   a 2D hexagonally packed cylinder structure
+   composed of asymmetric AB diblocks. This 
+   structure is projected into 3D for visual-
+   ization in polymer_visual. Use the Name-
+   Value input "hex3" to visualize this in an
+   alternate way that shows clearly the three-
+   fold (and, in this case, six-fold) 
+   rotational symmetry.
+   To view the composition profiles as 2D 
+   graphics rather than 3D, set the Name-Value 
+   input "view" equal to 2.
+
+bcc.rf: 
+   a 3D cubic BCC structure composed of highly
+   asymmetric AB diblocks. A relatively simple
+   example of a 3D structure to visualize in
+   polymer_visual.
+
+alt_gyr.rf: 
+   a 3D cubic alternating gyroid structure,
+   composed of ABC triblock polymers.
+   The inclusion of a third species makes
+   the visualization a bit more complex.
+
+sapphire.rf: 
+   a trigonal sphere-packed structure composed
+   of AB diblocks and B'C diblocks, in which 
+   B and C are highly repulsive, resulting in
+   spheres being composed entirely of AB or 
+   B'C, but never a blend of both. The arrange-
+   ment of particles on different lattice sites
+   assumes the same structure as alpha-Al2O3, 
+   a.k.a. sapphire. This unit cell is rhombo-
+   hedral, and it is a three-component system,
+   so this is the most complex bulk structure
+   from among the examples in this directory in
+   terms of generating the correct 3D graphic.
+
+gyr_thin_film_111.rf:
+   a thin film double-gyroid composed of AB
+   diblocks, oriented with the (111) plane 
+   parallel to the substrate and a very low
+   film thickness. This is included as an 
+   example of a thin film structure, which can
+   be visualized in polymer_visual using the
+   thin film correction (detailed in the main
+   README.md file). The thin film correction
+   can be applied with the following Name-
+   Value pair input:
+
+      "film_params",[2,0.15,0.3,0]
+ 
+   See the main README.md file for more info
+   on what these parameters mean. 
+   This structure has a hexagonal unit cell,
+   which means that it, too, can be visual-
+   ized in an alternate form using the "hex3"
+   Name-Value input, in order to clearly see
+   the three-fold rotational symmetry.
