@@ -162,6 +162,10 @@ function polymer_visual(filename,options)
         % read 'q [Å^{-1}]'. If units = '', the label will just be 'q'.
         options.units = "";
 
+        % Option to turn off the hkl labeling of the peaks in the
+        % scattering plot
+        options.no_labels = false;
+
         % direc is the direction of the vector along which we trace the
         % line profile. This is defined in reduced coordinates. The length
         % of the vector direc also defines the length of the line along
@@ -308,7 +312,7 @@ function polymer_visual(filename,options)
     end
     
     %% Call subfunctions to make all figures
-    
+
     % Draw individual density profiles for each monomer species specified
     % in mono_disp:
     individual_profiles(R,x,y,z,dim,"isovalue",options.isovalue,"map",...
@@ -371,7 +375,8 @@ function polymer_visual(filename,options)
                     'theta_plot',options.theta_plot,'units',...
                     options.units,'writefile',writefile_scat,'hkls', ...
                     options.hkls,'film_params',options.film_params,...
-                    'resolution',options.resolution);
+                    'resolution',options.resolution,'no_labels',...
+                    options.no_labels);
     
     % Draw the 1-D Line Profile
     if options.savefile ~= ""
