@@ -48,7 +48,8 @@ function [R,x,y,z,dim,lattype] = read_rgrid(filename)
         elseif strcmp(strrep(char(C(ic)),' ', ''),'N_monomer')==1
             % Reads the number of monomers
             n_mnr = str2double(C{ic+1}); 
-        elseif strcmp(strrep(char(C(ic)),' ', ''),'ngrid')==1
+        elseif strcmp(strrep(char(C(ic)),' ', ''),'ngrid')==1 || ...
+               strcmp(strrep(char(C(ic)),' ', ''),'mesh')==1
             % Reads the grid size
             grid = sscanf(C{ic+1},'%f')'; 
             start_row = ic+2; % the row where volume fractions start
