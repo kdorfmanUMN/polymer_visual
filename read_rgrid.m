@@ -178,7 +178,16 @@ function [x,y,z,basis] = gen_xyz(lattype, param, grid)
         angle = [pi/2 pi/2 pi/2];
         cell_d = [param(1) param(2) param(3)];
     elseif strcmp(lattype,'triclinic') == 1
-        angle = [param(4) param(5) param(6)];
+        phi = param(4);
+        theta = param(5);
+        gamma = param(6);
+        
+        % convert phi and theta to alpha and beta:
+        beta = acos(sin(theta)*cos(phi))
+        alpha = acos(sin(theta)*sin(phi) - ...
+                     (cos(beta)*cos(gamma)/sin(gamma)))
+
+        angle = [alpha beta gamma];
         cell_d = [param(1) param(2) param(3)];
     elseif strcmp(lattype,'monoclinic') == 1
         angle = [pi/2 param(4) pi/2];
