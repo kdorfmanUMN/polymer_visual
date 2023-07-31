@@ -88,7 +88,7 @@ function [R,x,y,z,basis] = thin_film_correction(R,x,y,z,normalVec,t,T,...
                 d = (pos(normalVec+1)-1) * L / (grid(normalVec+1));
                 rho_w = 0.5*(1+tanh(4*(((.5*(T-L))+abs(d-(L/2)))/t)));
                 
-                if rho_w <= 0.5
+                if rho_w <= 0.5001
                     R(ix,iy,iz,:) = R(ix,iy,iz,:) ./ (1-rho_w);
                 elseif ~ismember(pos(normalVec+1),delete)
                     delete(end+1) = pos(normalVec+1); %#ok<AGROW> 

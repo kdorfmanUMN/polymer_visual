@@ -61,10 +61,10 @@ function [R,x,y,z,dim,lattype] = read_rgrid(filename)
     
     % Extend 1D and 2D grids to a 3D grid
     if(length(grid)==1)
-        grid(2) = grid(1);
-        grid(3) = grid(1);
+        grid(2) = 3; %grid(1);
+        grid(3) = 3; %grid(1);
     elseif(length(grid)==2)
-        grid(3) = grid(1);
+        grid(3) = 3; %grid(1);
     end
     
     % Read grid points from the file into a linear array
@@ -183,9 +183,9 @@ function [x,y,z,basis] = gen_xyz(lattype, param, grid)
         gamma = param(6);
         
         % convert phi and theta to alpha and beta:
-        beta = acos(sin(theta)*cos(phi))
+        beta = acos(sin(theta)*cos(phi));
         alpha = acos(sin(theta)*sin(phi) - ...
-                     (cos(beta)*cos(gamma)/sin(gamma)))
+                     (cos(beta)*cos(gamma)/sin(gamma)));
 
         angle = [alpha beta gamma];
         cell_d = [param(1) param(2) param(3)];

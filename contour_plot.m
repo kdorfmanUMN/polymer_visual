@@ -240,10 +240,12 @@ function contour_plot(R,contourvecs,basis,options)
     
     % Convert vectors to grid coordinates
     start_coord = startloc .* grid + [1 1 1];
-    if ~isequal(start_coord,round(start_coord,0))
+    if ~isequal(round(start_coord,8),round(start_coord,0))
         disp('Starting coordinates:')
         disp(start_coord)
         error('Starting coordinates are not on a gridpoint')
+    else
+        start_coord = round(start_coord,0);
     end
 
     xvec_coord = xvec .* grid;
