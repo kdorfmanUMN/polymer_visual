@@ -748,7 +748,7 @@ function composite_profile(R,x,y,z,dim,options)
     % Add light if desired
     if light_on
         light(ax_main,'position',[-1 -1 1]);
-        light(ax_main,'position',[-1 -1 0]);
+        light(ax_main,'position',[-1 -1 1]);
         lighting(ax_main,"gouraud");
     end
 

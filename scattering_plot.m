@@ -156,16 +156,17 @@ function scattering_plot(R,x,y,z,options)
     if isempty(hkls)
         hkls = zeros(6^3,3);
         count = 0;
-        for h = 0:5
-            for k = 0:5
-                for l = 0:5
-                    count = count + 1;
-                    hkls(count,:) = [h,k,l];
+        for h = -6:6
+            for k = -6:6
+                for l = -6:6
+                    if h ~= 0 || k ~= 0 || l ~= 0
+                        count = count + 1;
+                        hkls(count,:) = [h,k,l];
+                    end
                 end
             end
         end
     end
-    hkls(1,:) = []; % Skip (000)
 
     % Create fgrid, which is a list of coordinates in reciprocal space
     % corresponding to the hkl indices specified in hkls, such that
@@ -178,7 +179,7 @@ function scattering_plot(R,x,y,z,options)
         fgrid(row,:) = ((hkls(row,1) * kbasis(1,:)) + ...
                         (hkls(row,2) * kbasis(2,:)) + ...
                         (hkls(row,3) * kbasis(3,:)));
-        q(row) = norm(fgrid(row,:));
+        q(row) = (2*pi) * norm(fgrid(row,:));
     end
     
     % Get a 3D data set D where D(i,j,k) is the sum of the compositions of
@@ -205,6 +206,7 @@ function scattering_plot(R,x,y,z,options)
     % the Fourier transform of our data evaluated at the coordinates
     % fgrid(i,:) in reciprocal space.
     Y = nufftn(rf,[xf,yf,zf],fgrid);
+    Y = Y / numel(xf);
     I = Y .* conj(Y); % Intensities of each scattering peak from FFT data
 
     % Resort q, I, and hkls in order by q value
@@ -261,8 +263,17 @@ function scattering_plot(R,x,y,z,options)
 
                 ismem = false;
                 for id = 1:size(hkls_q{row},1)
-                    if ismember(hkls(row2,:),perms(hkls_q{row}(id,:)),...
-                                'rows')
+                    row_hkl = hkls_q{row}(id,:);
+                    all_perms = zeros(48,3);
+                    all_perms(1:6,:) = perms(row_hkl);
+                    all_perms(7:12,:) = perms(row_hkl.*[-1 1 1]);
+                    all_perms(13:18,:) = perms(row_hkl.*[1 -1 1]);
+                    all_perms(19:24,:) = perms(row_hkl.*[1 1 -1]);
+                    all_perms(25:30,:) = perms(row_hkl.*[-1 -1 1]);
+                    all_perms(31:36,:) = perms(row_hkl.*[-1 1 -1]);
+                    all_perms(37:42,:) = perms(row_hkl.*[1 -1 -1]);
+                    all_perms(43:48,:) = perms(row_hkl.*[-1 -1 -1]);
+                    if ismember(hkls(row2,:),all_perms,'rows')
                         ismem = true;
                         hkls_q{row}(id,:) = hkls(row2,:);
                         break
@@ -369,6 +380,7 @@ function scattering_plot(R,x,y,z,options)
     pos = get(gcf,'position');
     set(gcf,'position',[pos(1) pos(2) pos(3)*1.5 pos(4)*1.5]); 
     ylim([min(I)*0.5,max(I)*5]); 
+    xlims = xlim; xlim([0,xlims(2)]);
     
     % Save figure if a filename is provided
     if options.savefile ~= ""
