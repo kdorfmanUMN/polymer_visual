@@ -195,6 +195,9 @@ function [x,y,z,basis] = gen_xyz(lattype, param, grid)
     elseif strcmp(lattype,'trigonal') == 1
         angle = [param(2) param(2) param(2)];
         cell_d = [param(1) param(1) param(1)];
+    elseif strcmp(lattype,'rhombohedral') == 1
+        angle = [param(2) param(2) param(2)];
+        cell_d = [param(1) param(1) param(1)];
     elseif strcmp(lattype,'square') == 1
         angle = [pi/2 pi/2 pi/2];
         cell_d = [param(1) param(1) param(1)];
