@@ -58,6 +58,13 @@ function line_profile(R,direc,startloc,options)
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
         options.fontsize = 14;
+
+        % title specifies a string to use as the figure title. Default is 
+        % "Density Profile Along [a b c]" if the line profile starts at the
+        % origin, or "Density Profile from [a b c] to [d e f]" if the line
+        % profile starts away from the origin (where [a b c d e f] are all
+        % replaced by the appropriate reduced coordinates). 
+        options.title = "default (will be replaced)";
         
         % mono_label contains labels for each monomer species. If not
         % specified, we use ["A","B","C",...] as the default behavior.
@@ -69,8 +76,8 @@ function line_profile(R,direc,startloc,options)
         % given in utilities/get_colormaps.
         options.colors = [0,   0.7, 0.9;   %blue
                           0.9, 0,   0;     %red
+                          0.85, 0.85, 0;   %dark yellow
                           0,   0.9, 0.2;   %green
-                          1,   1,   0;     %yellow
                           0.5, 0,   1;     %purple
                           1,   0,   1;     %pink
                           1,   0.5, 0;     %orange
@@ -111,8 +118,6 @@ function line_profile(R,direc,startloc,options)
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
-        close all; % close other figures
-                
         % Read data from file
         options.coords = cell(1,3);
         [R,options.coords{1},options.coords{2},...
@@ -272,11 +277,13 @@ function line_profile(R,direc,startloc,options)
 
     end
     
-    if isequal(startloc,[0 0 0])
-        title1 = sprintf('Density Profile Along [%g %g %g]',direc_og);
+    if options.title ~= "default (will be replaced)" % if title is provided
+        title1 = options.title;
+    elseif isequal(startloc,[0 0 0])
+        title1 = sprintf('Density Profile Along [%.4f %.4f %.4f]',direc_og);
     else
-        title1 = sprintf('Density Profile from [%g %g %g] to [%g %g %g]'...
-                         ,startloc_og,startloc_og+direc_og);
+        title1 = sprintf('Density Profile from [%.4f %.4f %.4f] to [%.4f %.4f %.4f]',...
+                         startloc_og,startloc_og+direc_og);
     end
     title(title1)
     xlabel('r/r_{max}')
@@ -292,15 +299,8 @@ function line_profile(R,direc,startloc,options)
         if (ext == ".fig") || (ext == ".m")
             saveas(gcf,options.savefile);
         else
-            if ext == ".jpg"
-                format = "-djpeg";
-            elseif ext == ".tif"
-                format = "-dtiff";
-            else
-                format = strcat("-d", extractAfter(ext,1));
-            end
-            res = strcat("-r",num2str(options.resolution));
-            print(gcf,options.savefile,format,res);
+            exportgraphics(gcf,options.savefile,"resolution",...
+                           options.resolution);
         end
     end
     

@@ -67,6 +67,10 @@ function composite_profile(R,x,y,z,dim,options)
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 14.
         options.fontsize = 14;
+
+        % title specifies a string to use as the figure title. Default is
+        % "Composite Density Profile"
+        options.title = "Composite Density Profile";
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -92,11 +96,23 @@ function composite_profile(R,x,y,z,dim,options)
         % marks, title, etc. by setting the "visible" property of the axes
         % to "off".
         options.hide_axes = false;
+
+        % If hide_colorbars is set to true, colorbars will not be drawn
+        options.hide_colorbars = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One for each species. If not specified,
         % we call get_isovalues.m to calculate them automatically.
         options.isovalue
+
+        % max_comps is a double or an array specifying the maximum
+        % composition to be shown on the colorbar for each species. If it
+        % is a double, the max composition will be set to that value for
+        % all species. If it is an array, the array should contain one
+        % entry for each species, giving the maximum composition for each.
+        % If not provided by user, the max composition used is the max
+        % composition for that species in the entire system.
+        options.max_comps
         
         % mono_label contains labels for each monomer species. If not
         % specified, we use ["A","B","C",...] as the default behavior.
@@ -133,6 +149,11 @@ function composite_profile(R,x,y,z,dim,options)
         options.alim = [0,1];
         options.blim = [0,1];
         options.clim = [0,1];
+
+        % outer_line_color is the color to use to draw an outer box
+        % around the entire plotted region. This box differs from the unit
+        % cell if the user has specified alim, blim, and/or clim. 
+        options.outer_line_color = "None";
         
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -204,7 +225,6 @@ function composite_profile(R,x,y,z,dim,options)
     if ischar(R) || isstring(R) 
         
         clear x y z; % We will determine x, y, and z from the rgrid file
-        close all; % close other figures
                 
         % Read data from file
         [R,x,y,z,dim,lattype] = read_rgrid(R);
@@ -292,6 +312,30 @@ function composite_profile(R,x,y,z,dim,options)
     else
         isovalue = get_isovalues(R,dim,'plot',false);
     end
+
+    if isfield(options,'max_comps')
+        max_comps = options.max_comps;
+        if numel(max_comps) == 1
+            max_comps = ones(1,n_mnr) * max_comps;
+        end
+        % check if R > max_comps anywhere, if so set R = max_comps
+        for ix = 1:size(R,1)
+            for iy = 1:size(R,2)
+                for iz = 1:size(R,3)
+                    for in = 1:size(R,4)
+                        if R(ix,iy,iz,in) > max_comps(in)
+                            R(ix,iy,iz,in) = max_comps(in);
+                        end
+                    end
+                end
+            end
+        end
+    else
+        max_comps = zeros(1,n_mnr);
+        for in = 1:n_mnr
+            max_comps(in) = max(R(:,:,:,in),[],'all');
+        end
+    end
     
     if isscalar(options.n_digits)
         n_digits = ones(1,n_mnr) * options.n_digits;
@@ -340,22 +384,30 @@ function composite_profile(R,x,y,z,dim,options)
         xd = options.alim(2)-options.alim(1);
         yd = options.blim(2)-options.blim(1);
         zd = options.clim(2)-options.clim(1);
-        box_basis(1,1) = (1+sc) * ((xd * basis(1,1)) + ...
-                         (yd * abs(basis(2,1)) + (zd * abs(basis(3,1)))));
-        box_basis(2,2) = (1+sc) * ((xd * basis(1,2)) + ...
-                         (yd * abs(basis(2,2)) + (zd * abs(basis(3,2)))));
+
+        box_basis(1:2,:) = (1+sc) * basis(1:2,:);
+        box_basis(1,:) = box_basis(1,:) * xd;
+        box_basis(2,:) = box_basis(2,:) * yd;
+
         if normalVec == -1 % not a thin film system
             box_basis(3,3) = sc * zd * basis(3,3);
-        else
-            box_basis(3,3) = min(z,[],'all');
+        else % thin film
+            box_basis(3,3) = min(z,[],'all') + 0.02;
+            % the extra 0.02 allows the substrate/top wall to extend just
+            % past the SCFT unit cell, so that you don't see the outer box
+            % of the unit cell through the wall
         end
         
-        origin(1) = min(x,[],'all') - ((sc/2) * xd * basis(1,1));
-        origin(2) = min(y,[],'all') - ((sc/2) * yd * basis(2,2));
+        origin(1) = x(1,1,1) - ((sc/2) * xd * basis(1,1));
+        origin(2) = y(1,1,1) - ((sc/2) * yd * basis(2,2));
         
         if options.substrate
             % Draw substrate graphic
-            origin(3) = min(z,[],'all')  - box_basis(3,3);
+            origin(3) = min(z,[],'all')  - box_basis(3,3) - 0.005;
+            % the gap of size 0.005 between the substrate and the film is
+            % not visible in the graphic, but prevents the substrate from
+            % being coplanar with the bottom of the unit cell, which can
+            % cause undesirable visual effects
             draw_box(box_basis,origin,...
                      "FaceColor",options.substrate_color,...
                      "EdgeColor",options.substrate_line_color,...
@@ -375,7 +427,7 @@ function composite_profile(R,x,y,z,dim,options)
             end
 
             % Draw top wall graphic
-            origin(3) = max(z,[],'all');
+            origin(3) = max(z,[],'all') + 0.005;
             draw_box(box_basis,origin,...
                      "FaceColor",options.top_wall_color,...
                      "EdgeColor",options.top_wall_line_color,...
@@ -388,12 +440,15 @@ function composite_profile(R,x,y,z,dim,options)
     hex3 = options.hex3; 
     line_width = options.line_width; 
     line_color = options.line_color;
+    outer_line_color = options.outer_line_color;
+    fig_title = options.title;
     cb_ticks = options.cb_ticks;
     savefile = options.savefile;
     fontsize = options.fontsize;
     cb_rows = options.cb_rows;
     light_on = options.light;
     hide_axes = options.hide_axes;
+    hide_colorbars = options.hide_colorbars;
     alims = options.alim;
     blims = options.blim;
     clims = options.clim;
@@ -406,23 +461,39 @@ function composite_profile(R,x,y,z,dim,options)
     set(ax_main,'fontsize',fontsize);
     
     % Get title position in absolute units (points)
-    t = title("Composite Density Profile");
-    set(t,"Units","Points");
-    t_size = get(t,"extent");
-    set(t,"Units","Normalized");
-
-    % Concatenate elements of map into a single long colormap called newmap
-    if size(map,1) == 1 % if map is a horizontal cell array
-        newmap = cell2mat(map(1:n_mnr)');
-    else % map is a vertical cell array
-        newmap = cell2mat(map(1:n_mnr));
+    if fig_title ~= ""
+        t = title(fig_title);
+        set(t,"Units","Points");
+        t_size = get(t,"extent");
+        set(t,"Units","Normalized");
+    else
+        t_size = 0;
     end
+
+    % Concatenate elements of map into a single long colormap called
+    % newmap, buffered by solid colors in between
+    ms = size(map{1});
+    newmap = ones(ms(1)*(2*n_mnr+1),ms(2)) .* map{1}(1,:);
+    newmap(ms(1)+1:2*ms(1),:) = map{1};
+    for in = 2:n_mnr
+        if size(map{1},1) ~= size(map{in},1)
+            error("All colormaps must be the same size")
+        end
+        for ix = 1:ms(1)
+            if ix < ms(1)/2
+                newmap((2*in-2)*ms(1)+ix,:) = map{in-1}(end,:);
+            else
+                newmap((2*in-2)*ms(1)+ix,:) = map{in}(1,:);
+            end
+        end
+        newmap((2*in-1)*ms(1)+1:2*in*ms(1),:) = map{in};
+    end
+    newmap((2*n_mnr)*ms(1)+1:end,:) = ones(ms) .* map{n_mnr}(end,:);
     
     % Initialize variables that will be used to rescale data to our cmap
     D = zeros(size(R));
     newisovalue = zeros(1,n_mnr);
-    max_comps = zeros(1,n_mnr);
-    zero_val = 0;
+    zero_val = ms(1);
     
     % Loop over each species to plot
     for in = 1:n_mnr
@@ -449,17 +520,15 @@ function composite_profile(R,x,y,z,dim,options)
             continue;
         end
         
-        max_comps(in) = max(R(:,:,:,in),[],'all');
         range = max_comps(in) - isovalue(in);
-        cmap_size = size(map{in},1);
         
         % Rescale data and isovalue:
-        D(:,:,:,in) = ((R(:,:,:,in) - isovalue(in)) * (cmap_size-1)...
+        D(:,:,:,in) = ((R(:,:,:,in) - isovalue(in)) * (ms(1)-1)...
                       / range) + zero_val;
         newisovalue(in) = zero_val;
         
         % Update zero_val for the next species we plot
-        zero_val = zero_val + cmap_size;
+        zero_val = zero_val + (2 * ms(1));
         
         % Plot rescaled data for this species
         if (normalVec == -1) || ((lims(normalVec+1,1) >= 0) && ...
@@ -588,10 +657,19 @@ function composite_profile(R,x,y,z,dim,options)
     
     % Set colormap
     colormap(newmap);
-    caxis([0,size(newmap,1)-1]);
+    clim([0,size(newmap,1)-1]);
     
     % Draw box around outside of unit cell
     draw_box(basis,'LineWidth',line_width,'EdgeColor',line_color);
+
+    % Draw outer box around the entire plotted region 
+    lims_diff = [alims(2)-alims(1); blims(2)-blims(1); clims(2)-clims(1)];
+    outer_basis = basis .* lims_diff;
+    lims_1 = [alims(1), blims(1), clims(1)];
+    origin = lims_1 * basis;
+    draw_box(outer_basis,origin,'LineWidth',line_width,...
+             'EdgeColor',outer_line_color);
+
 
     % Fix data aspect ratio and set axis limits to "tight" setting
     daspect([1 1 1]);  % Equates the data aspect ratio for each axis
@@ -612,135 +690,140 @@ function composite_profile(R,x,y,z,dim,options)
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     %% Create colorbars and make them look good
 
-    tmp = colorbar; % Create temporary colorbar in the default position
-    set(ax_main,"Units","Points") % Absolute units rather than reduced
-    set(tmp,"Units","Points")         % Absolute units rather than reduced
-    
-    % Below, we find the aspect ratio of the 2D projection of our 3D plot,
-    % which depends on the viewing angle. We will then set the width/height
-    % of our axes object to match this aspect ratio, which allows the plot
-    % to have the same height and left-edge position regardless of unit
-    % cell parameters. 
-    
-    pb = pbaspect; % Plot box aspect ratio
-    [az,el] = view(); % viewing angle
-    aspect_ratio = get_aspect_ratio(az,el,pb); % aspect ratio of plot
-    
-    % Fix the axes to reflect the correct aspect ratio
-    ax_pos = get(ax_main,"Position"); % Get current axes position
-    ax_pos(3) = ax_pos(4) * aspect_ratio; % Fix aspect ratio
-    if ax_pos(3) < t_size(3)
-        ax_pos(3) = t_size(3);
-    end
-    
-    set(ax_main,"Position",ax_pos);   % Apply adjusted axes position
-    delete(tmp) % Delete the temporary colorbar that we used to move the 
-                % axes leftward
-    
-    % Set up for the case of multiple rows of colorbars
-    n_cbars = n_species;
-    ncol = ceil(n_cbars/cb_rows);
-    if cb_rows > 1 % If we need to calculate positions of multiple cb rows
-        
-        % See how tall the colorbar title is
-        title1 = strcat('\phi','_',mono_label(1));
-        tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot the text
-        set(tmp,"Units","Points");
-        txt_height = get(tmp,"Extent"); % Find height of the text box
-        txt_height = txt_height(4);
-        delete(tmp) % Delete the temporary text we plotted
-        
-        % Get variables needed to determine colorbar positions
-        title_h = txt_height * 1.3 + 10; % Space allocated for cb titles
-        total_h = ax_pos(4); % Total height of each column
-        top_pos = ax_pos(4)+ax_pos(2); % coordinate of top edge of column
-        cb_space = total_h - (title_h * (cb_rows-1)); 
-        rows = 1:cb_rows;
-        
-        % construct cb_y, a list of the y-coordinates of the colorbars in
-        % each row. cb_y(r) is the y-coord of the colorbar in row r.
-        cb_h = cb_space / cb_rows; % height of all colorbars
-        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); 
-        
-    else % Only 1 colorbar row, use default height
-        
-        cb_y = ones(n_cbars,1) * ax_pos(2); % y coord of each colorbar
-        cb_h = ax_pos(4); % height of each colorbar
-        
-    end
-    
-    % set x-coord of first colorbar column, 40pts right of the axes object
-    cb_x = ax_pos(1)+ax_pos(3)+40; 
-    
-    % Loop over columns/rows of colorbars and create colorbars
-    for col = 1:ncol
-        txt_width = 0; % variable to help us set colorbar locations
-        for row = 1:cb_rows
-            
-            % Colorbar position number (left to right, top to bottom)
-            pos = (row-1)*ncol + col; 
-            
-            % If this column/row should contain a colorbar:
-            if pos <= n_cbars
-                
-                % Monomer index for this row/column
-                in = species(pos);
+    if ~hide_colorbars
 
-                % Colorbar data limits
-                cb_start = isovalue(in);
-                cb_end = max_comps(in);
-
-                % Create cb ticklabels according to specs provided by user
-                cblabel = linspace(cb_start,cb_end,cb_ticks);
-                tick_format = strcat('%.',string(n_digits(in)),'f');
-                cblabel = compose(tick_format,cblabel');
-                l_lngth = linspace(0,1,cb_ticks);
-
-                % Create a new invisible axes object for this colorbar
-                ax(in) = axes("Units","Points"); %#ok<AGROW> 
-                set(ax(in),"Visible","off","XTick",[],"YTick",[],...
-                    "ZTick",[],"InnerPosition",ax_pos);
-
-                % Assign the appropriate colormap to this axes object
-                colormap(ax(in),map{in});
-
-                % Create the colorbar
-                cb(in) = colorbar(ax(in)); %#ok<AGROW> 
-                cb_pos = [cb_x,cb_y(row),22,cb_h];
-                set(cb(in),"axislocation","out","Units","Points",...
-                    "ytick",l_lngth,"ticklabels",cblabel,...
-                    "fontsize",fontsize,"Position",cb_pos,"color","k");
-                title1 = strcat('\phi','_',mono_label(in));
-                title(cb(in),title1,'fontsize',fontsize*1.1);
-                
-                % Estimate the width of our ticklabels, and if it is larger
-                % than txt_width then update txt_width
-                [~,ind] = max(strlength(cblabel)); %Find longest ticklabel
-                tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
-                set(tmp,"Units","Points");
-                txt_extent = get(tmp,"Extent"); % Find width of the text
-                if txt_extent(3) > txt_width % Update txt_width if needed
-                    txt_width = txt_extent(3);
-                end
-                delete(tmp) % Delete the temporary text we plotted
-                
-            end
+        tmp = colorbar; % Create temporary colorbar in the default position
+        set(ax_main,"Units","Points") % Absolute units rather than reduced
+        set(tmp,"Units","Points")     % Absolute units rather than reduced
+        
+        % Below, we find the aspect ratio of the 2D projection of our 3D
+        % plot, which depends on the viewing angle. We will then set the
+        % width/height of our axes object to match this aspect ratio, which
+        % allows the plot to have the same height and left-edge position
+        % regardless of unit cell parameters.
+        
+        pb = pbaspect; % Plot box aspect ratio
+        [az,el] = view(); % viewing angle
+        aspect_ratio = get_aspect_ratio(az,el,pb); % aspect ratio of plot
+        
+        % Fix the axes to reflect the correct aspect ratio
+        ax_pos = get(ax_main,"Position"); % Get current axes position
+        ax_pos(3) = ax_pos(4) * aspect_ratio; % Fix aspect ratio
+        if ax_pos(3) < t_size(3)
+            ax_pos(3) = t_size(3);
         end
         
-        % Update colorbar x-position for the next row
-        cb_x = cb_x + 22 + txt_width + 20; 
+        set(ax_main,"Position",ax_pos);   % Apply adjusted axes position
+        delete(tmp) % Delete the temporary colorbar that we used to move
+                    % the axes leftward
         
+        % Set up for the case of multiple rows of colorbars
+        n_cbars = n_species;
+        ncol = ceil(n_cbars/cb_rows);
+        if cb_rows > 1 % If we need positions of multiple cb rows
+            
+            % See how tall the colorbar title is
+            title1 = strcat('\phi','_',mono_label(1));
+            tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot text
+            set(tmp,"Units","Points");
+            txt_height = get(tmp,"Extent"); % Find height of the text box
+            txt_height = txt_height(4);
+            delete(tmp) % Delete the temporary text we plotted
+            
+            % Get variables needed to determine colorbar positions
+            title_h = txt_height * 1.3 + 10; % Space allotted for cb titles
+            total_h = ax_pos(4); % Total height of each column
+            top_pos = ax_pos(4)+ax_pos(2); % coordinate of top edge
+            cb_space = total_h - (title_h * (cb_rows-1)); 
+            rows = 1:cb_rows;
+            
+            % construct cb_y, a list of the y-coordinates of the colorbars
+            % in each row. cb_y(r) is the y-coord of the colorbar in row r
+            cb_h = cb_space / cb_rows; % height of all colorbars
+            cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); 
+            
+        else % Only 1 colorbar row, use default height
+            
+            cb_y = ones(n_cbars,1) * ax_pos(2); % y coord of each colorbar
+            cb_h = ax_pos(4); % height of each colorbar
+            
+        end
+        
+        % set x-coord of first colorbar column, 40pts right of axes object
+        cb_x = ax_pos(1)+ax_pos(3)+40; 
+        
+        % Loop over columns/rows of colorbars and create colorbars
+        for col = 1:ncol
+            txt_width = 0; % variable to help us set colorbar locations
+            for row = 1:cb_rows
+                
+                % Colorbar position number (left to right, top to bottom)
+                pos = (row-1)*ncol + col; 
+                
+                % If this column/row should contain a colorbar:
+                if pos <= n_cbars
+                    
+                    % Monomer index for this row/column
+                    in = species(pos);
+    
+                    % Colorbar data limits
+                    cb_start = isovalue(in);
+                    cb_end = max_comps(in);
+    
+                    % Create cb ticklabels according to input params
+                    cblabel = linspace(cb_start,cb_end,cb_ticks);
+                    tick_format = strcat('%.',string(n_digits(in)),'f');
+                    cblabel = compose(tick_format,cblabel');
+                    l_lngth = linspace(0,1,cb_ticks);
+    
+                    % Create a new invisible axes object for this colorbar
+                    ax(in) = axes("Units","Points"); %#ok<AGROW> 
+                    set(ax(in),"Visible","off","XTick",[],"YTick",[],...
+                        "ZTick",[],"InnerPosition",ax_pos);
+    
+                    % Assign the appropriate colormap to this axes object
+                    colormap(ax(in),map{in});
+    
+                    % Create the colorbar
+                    cb(in) = colorbar(ax(in)); %#ok<AGROW> 
+                    cb_pos = [cb_x,cb_y(row),22,cb_h];
+                    set(cb(in),"axislocation","out","Units","Points",...
+                        "ytick",l_lngth,"ticklabels",cblabel,...
+                        "fontsize",fontsize,"Position",cb_pos,"color","k");
+                    title1 = strcat('\phi','_',mono_label(in));
+                    title(cb(in),title1,'fontsize',fontsize*1.1);
+                    
+                    % Estimate the width of our ticklabels, and if it is
+                    % larger than txt_width then update txt_width
+                    [~,ind] = max(strlength(cblabel)); %longest ticklabel
+                    tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
+                    set(tmp,"Units","Points");
+                    txt_extent = get(tmp,"Extent"); % Find text width
+                    if txt_extent(3) > txt_width % Update txt_width
+                        txt_width = txt_extent(3);
+                    end
+                    delete(tmp) % Delete the temporary text we plotted
+                    
+                end
+            end
+            
+            % Update colorbar x-position for the next row
+            cb_x = cb_x + 22 + txt_width + 20; 
+            
+        end
     end
     
     %% Finish
 
     % Update figure size to show everything we want to show
-    set(fig,'Units','Points');
-    fig_pos = get(fig,'position');
-    fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
-    % Make figure taller to fit cb titles
-    fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
-    set(fig,'position',fig_pos);
+    if ~hide_colorbars
+        set(fig,'Units','Points');
+        fig_pos = get(fig,'position');
+        fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
+        % Make figure taller to fit cb titles
+        fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
+        set(fig,'position',fig_pos);
+    end
 
     drawnow % this refreshes all graphics objects (processes callbacks).
             % The colorbars end up too big if we don't call this here
@@ -763,29 +846,25 @@ function composite_profile(R,x,y,z,dim,options)
         if (ext == ".fig") || (ext == ".m")
             saveas(fig,savefile);
         else
-            if ext == ".jpg"
-                format = "-djpeg";
-            elseif ext == ".tif"
-                format = "-dtiff";
-            else
-                format = strcat("-d", extractAfter(ext,1));
-            end
-            res = strcat("-r",num2str(resolution));
-            print(fig,savefile,format,res);
+            exportgraphics(fig,savefile,"resolution",resolution);
         end
     end
     
     % Prep figure for interactive use
     set(ax_main,'Units','Normalized')
     set(fig,'Units','Normalized')
-    for is = 1:n_species
-        in = species(is);
-        % Set units back to normalized so that the axes and 
-        % colorbars will change size correctly when the size of
-        % the figure is modified
-        set(ax(in),"Units","Normalized");
-        set(cb(in),"Units","Normalized");
+    
+    if ~hide_colorbars
+        for is = 1:n_species
+            in = species(is);
+            % Set units back to normalized so that the axes and 
+            % colorbars will change size correctly when the size of
+            % the figure is modified
+            set(ax(in),"Units","Normalized");
+            set(cb(in),"Units","Normalized");
+        end
     end
+    
     rotate3d on;
     uistack(ax_main,'top') % Allows rotate3d to rotate the main axis
     

@@ -76,6 +76,10 @@ function scattering_plot(R,x,y,z,options)
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 14.
         options.fontsize = 14;
+
+        % title specifies a string to use as the figure title. Default is
+        % no title ("")
+        options.title = "";
         
         % theta_plot is a boolean, where we plot our scattering peaks as a
         % function of 2θ if it is true. Otherwise, we plot it as a function
@@ -118,7 +122,6 @@ function scattering_plot(R,x,y,z,options)
     if ischar(R) || isstring(R) 
         
         clear x y z; % We will determine x, y, and z from the rgrid file
-        close all; % close other figures
                 
         % Read data from file
         [R,x,y,z] = read_rgrid(R);
@@ -313,6 +316,9 @@ function scattering_plot(R,x,y,z,options)
     hold on; 
     box on; 
     set(gca,'fontsize',options.fontsize)
+    if options.title ~= ""
+        title(options.title)
+    end
 
     if options.theta_plot % If we want the x-axis to be 2θ
         twotheta = asin(q / max(q)) * 2 * 180 / pi; 
@@ -388,16 +394,8 @@ function scattering_plot(R,x,y,z,options)
         if (ext == ".fig") || (ext == ".m")
             saveas(gcf,options.savefile);
         else
-            if ext == ".jpg"
-                format = "-djpeg";
-            elseif ext == ".tif"
-                format = "-dtiff";
-            else
-                disp(ext(2:end))
-                format = strcat("-d", extractAfter(ext,1));
-            end
-            res = strcat("-r",num2str(options.resolution));
-            print(gcf,options.savefile,format,res);
+            exportgraphics(gcf,options.savefile,"resolution",...
+                           options.resolution);
         end
     end
     

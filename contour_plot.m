@@ -56,6 +56,10 @@ function contour_plot(R,contourvecs,basis,options)
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 10.
         options.fontsize = 14;
+
+        % title specifies a string to use as the figure title. Default is
+        % no title ("")
+        options.title = "";
         
         % mono_label contains labels for each monomer species. If not
         % specified, we use ["A","B","C",...] as the default behavior.
@@ -70,6 +74,15 @@ function contour_plot(R,contourvecs,basis,options)
         % fraction to show on plot. One for each species. If not specified,
         % we call get_isovalues.m to calculate them automatically.
         options.isovalue
+
+        % max_comps is a double or an array specifying the maximum
+        % composition to be shown on the colorbar for each species. If it
+        % is a double, the max composition will be set to that value for
+        % all species. If it is an array, the array should contain one
+        % entry for each species, giving the maximum composition for each.
+        % If not provided by user, the max composition used is the max
+        % composition for that species in the entire system.
+        options.max_comps
 
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -120,13 +133,23 @@ function contour_plot(R,contourvecs,basis,options)
         % coordinates are required inputs for thin_film_correction.m, so we
         % must have them available if we wish to apply the correction.
         options.coords;
+
+        % If hide_colorbars is set to true, colorbars will not be drawn
+        options.hide_colorbars = false;
+
+        % If hide_axes is set to true, the plot will not contain the tick 
+        % marks, title, etc. by setting the "visible" property of the axes
+        % to "off".
+        options.hide_axes = false;
         
     end
     
     savefile = options.savefile;     fontsize = options.fontsize;
     mono_label = options.mono_label; cb_ticks = options.cb_ticks;
     cb_rows = options.cb_rows;       phase = options.phase;  
-    resolution = options.resolution; 
+    resolution = options.resolution; fig_title = options.title;
+    hide_colorbars = options.hide_colorbars;
+    hide_axes = options.hide_axes;
 
     % Ensure that the code below can access our utilities
     [filepath,~,~] = fileparts(mfilename('fullpath'));
@@ -135,8 +158,6 @@ function contour_plot(R,contourvecs,basis,options)
     % if a filename is passed to the function, read data from that file
     if ischar(R) || isstring(R) 
         
-        close all; % close other figures
-                
         % Read data from file
         [R,x,y,z,dim] = read_rgrid(R);
         
@@ -157,6 +178,8 @@ function contour_plot(R,contourvecs,basis,options)
         if isempty(basis) % if basis array is not provided
             error("basis must be provided as input")
         end
+
+        dim = ndims(R) - 1;
    
     end
 
@@ -216,12 +239,19 @@ function contour_plot(R,contourvecs,basis,options)
         n_digits = options.n_digits;
     end
 
-    clear options;
-
-    max_comps = zeros(1,n_mnr);
-    for in = 1:n_mnr
-        max_comps(in) = max(max(max(R(:,:,:,in))));
+    if isfield(options,'max_comps')
+        max_comps = options.max_comps;
+        if numel(max_comps) == 1
+            max_comps = ones(1,n_mnr) * max_comps;
+        end
+    else
+        max_comps = zeros(1,n_mnr);
+        for in = 1:n_mnr
+            max_comps(in) = max(R(:,:,:,in),[],'all');
+        end
     end
+
+    clear options;
 
     startloc = contourvecs(1,:); % Starting coordinates
     xvec = contourvecs(2,:);     % x-axis vector in reduced coords
@@ -325,6 +355,10 @@ function contour_plot(R,contourvecs,basis,options)
     
     % Make contour plot
     figure(); hold on; 
+
+    if fig_title ~= ""
+        title(fig_title)
+    end
     
     for in = 1:n_mnr
         
@@ -344,17 +378,23 @@ function contour_plot(R,contourvecs,basis,options)
         contourf(xcontour,ycontour,contour_data(:,:,in),contour_colors,...
                  'linecolor','none')
         colormap(gca,map{in})
-        cb(in) = colorbar(gca);
-        set(cb(in),'ytick',ticks,'Yticklabel',cblabel)
-        caxis(ax(in),[isovalue(in),max_comps(in)])
-        title1 = strcat('\phi','_',mono_label(in));
-        title(cb(in),title1,'fontsize',fontsize*1.1)
-
-        if outline
-            line(x_corners,y_corners,'color','k','linewidth',1)
+        if ~hide_colorbars
+            cb(in) = colorbar(gca);
+            set(cb(in),'ytick',ticks,'Yticklabel',cblabel)
+            clim(ax(in),[isovalue(in),max_comps(in)])
+            title1 = strcat('\phi','_',mono_label(in));
+            title(cb(in),title1,'fontsize',fontsize*1.1)
         end
 
-        set(ax(in),'Visible','off');
+        if outline
+            line(x_corners,y_corners,'color','k','linewidth',1.5)
+        end
+
+        if in ~= 1 || hide_axes
+            set(ax(in),'Visible','off');
+        end
+
+
         daspect([1 1 1])
         if in==1
             pb = pbaspect;
@@ -364,67 +404,73 @@ function contour_plot(R,contourvecs,basis,options)
     end
     
     % Set up for the case of multiple rows of colorbars
-    ncol = ceil(n_mnr/cb_rows);
-    if cb_rows > 1 % If we need to calculate positions of multiple cb rows
-        
-        % See how tall the colorbar title is
-        title1 = strcat('\phi','_',mono_label(1));
-        tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot the text
-        set(tmp,"Units","Points");
-        txt_height = get(tmp,"Extent"); % Find height of the text box
-        txt_height = txt_height(4);
-        delete(tmp) % Delete the temporary text we plotted
-        
-        % Get variables needed to determine colorbar positions
-        title_h = txt_height * 1.3 + 10; % Space allocated for cb titles
-        total_h = ax_pos(4); % Total height of each column
-        top_pos = ax_pos(4)+ax_pos(2); % coordinate of top edge of column
-        cb_space = total_h - (title_h * (cb_rows-1)); 
-        rows = 1:cb_rows;
-        
-        % construct cb_y, a list of the y-coordinates of the colorbars in
-        % each row. cb_y(r) is the y-coord of the colorbar in row r.
-        cb_h = cb_space / cb_rows; % height of all colorbars
-        cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); 
-        
-    else % Only 1 colorbar row, use default height
-        
-        cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
-        cb_h = ax_pos(4); % height of each colorbar
-        
-    end
-    
-    cb_x = ax_pos(1)+ax_pos(3)+40; 
-    
-    for col = 1:ncol
-        txt_width = 0;
-        for row = 1:cb_rows
-            % Monomer index for this row/column
-            in = (row-1)*ncol + col; 
-            if in <= n_mnr % If this column/row should contain a colorbar:
+    if ~hide_colorbars
+        ncol = ceil(n_mnr/cb_rows);
 
-                % Create the colorbar
-                cb_pos = [cb_x,cb_y(row),22,cb_h];
-                set(cb(in),"axislocation","out","Units","Points",...
-                    "fontsize",fontsize,"Position",cb_pos,"color","k");
-                
-                % Estimate the width of our ticklabels, and if it is larger
-                % than txt_width then update txt_width
-                [~,ind] = max(strlength(cblabel)); %Find longest ticklabel
-                tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
-                set(tmp,"Units","Points");
-                txt_extent = get(tmp,"Extent"); % Find width of the text
-                if txt_extent(3) > txt_width % Update txt_width if needed
-                    txt_width = txt_extent(3);
-                end
-                delete(tmp) % Delete the temporary text we plotted
-                
-            end
+        % If we need to calculate positions of multiple cb rows
+        if cb_rows > 1 
+            
+            % See how tall the colorbar title is
+            title1 = strcat('\phi','_',mono_label(1));
+            tmp = text(0,0,0,title1,'fontsize',fontsize*1.1); % Plot text
+            set(tmp,"Units","Points");
+            txt_height = get(tmp,"Extent"); % Find height of the text box
+            txt_height = txt_height(4);
+            delete(tmp) % Delete the temporary text we plotted
+            
+            % Get variables needed to determine colorbar positions
+            title_h = txt_height * 1.3 + 10; % Space allotted for cb titles
+            total_h = ax_pos(4); % Total height of each column
+            top_pos = ax_pos(4)+ax_pos(2); % coordinate of top of column
+            cb_space = total_h - (title_h * (cb_rows-1)); 
+            rows = 1:cb_rows;
+            
+            % construct cb_y, a list of the y-coordinates of the colorbars 
+            % in each row. cb_y(r) is the y-coord of the colorbar in row r.
+            cb_h = cb_space / cb_rows; % height of all colorbars
+            cb_y = top_pos - (rows*cb_h) - ((rows-1)*title_h); 
+            
+        else % Only 1 colorbar row, use default height
+            
+            cb_y = ones(n_mnr,1) * ax_pos(2); % y coord of each colorbar
+            cb_h = ax_pos(4); % height of each colorbar
+            
         end
         
-        % Update colorbar x-position for the next row
-        cb_x = cb_x + 22 + txt_width + 20; 
+        cb_x = ax_pos(1)+ax_pos(3)+40; 
         
+        for col = 1:ncol
+            txt_width = 0;
+            for row = 1:cb_rows
+                % Monomer index for this row/column
+                in = (row-1)*ncol + col; 
+
+                % If this column/row should contain a colorbar:
+                if in <= n_mnr 
+    
+                    % Create the colorbar
+                    cb_pos = [cb_x,cb_y(row),22,cb_h];
+                    set(cb(in),"axislocation","out","Units","Points",...
+                        "fontsize",fontsize,"Position",cb_pos,"color","k");
+                    
+                    % Estimate the width of our ticklabels, and if it is
+                    % larger than txt_width then update txt_width
+                    [~,ind] = max(strlength(cblabel)); % longest ticklabel
+                    tmp = text(0,0,0,cblabel(ind),'fontsize',fontsize); 
+                    set(tmp,"Units","Points");
+                    txt_extent = get(tmp,"Extent"); % width of the text
+                    if txt_extent(3) > txt_width % Update txt_width 
+                        txt_width = txt_extent(3);
+                    end
+                    delete(tmp) % Delete the temporary text we plotted
+                    
+                end
+            end
+            
+            % Update colorbar x-position for the next row
+            cb_x = cb_x + 22 + txt_width + 20; 
+            
+        end
     end
     
     if phase ~= "" % If phase is specified, draw voronoi partition
@@ -452,7 +498,8 @@ function contour_plot(R,contourvecs,basis,options)
             % these points
             rescaled = ([xvec; yvec]'\P')';
             k = convhull(rescaled);
-            plot(rescaled(k,1)*norm(xvec),rescaled(k,2)*norm(yvec),'k-','linewidth',2)
+            plot(rescaled(k,1)*norm(xvec),rescaled(k,2)*norm(yvec),'k-',...
+                 'linewidth',2)
             xlim(xlims); ylim(ylims);
         end
         
@@ -461,9 +508,17 @@ function contour_plot(R,contourvecs,basis,options)
     % Update figure size to show everything we want to show
     set(gcf,'Units','Points');
     fig_pos = get(gcf,'position');
-    fig_pos(3) = cb_x * 1.05; % Make figure wide enough to see all cbs
-    % Make figure taller to fit cb titles
-    fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
+
+    if hide_colorbars
+        width = ax_pos(1)+ax_pos(3)+72.8; 
+        fig_pos(3) = width;
+    else
+        % Make figure wide enough to see all cbs
+        fig_pos(3) = cb_x * 1.05; 
+        
+        % Make figure taller to fit cb titles
+        fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
+    end
     set(gcf,'position',fig_pos);
     
     % Save figure if a filename is provided
@@ -472,15 +527,7 @@ function contour_plot(R,contourvecs,basis,options)
         if (ext == ".fig") || (ext == ".m")
             saveas(gcf,savefile);
         else
-            if ext == ".jpg"
-                format = "-djpeg";
-            elseif ext == ".tif"
-                format = "-dtiff";
-            else
-                format = strcat("-d", extractAfter(ext,1));
-            end
-            res = strcat("-r",num2str(resolution));
-            print(gcf,savefile,format,res);
+            exportgraphics(gcf,savefile,"resolution",resolution);
         end
     end
     

@@ -56,9 +56,21 @@ function individual_profiles(R,x,y,z,dim,options)
         % at screen resolution.
         options.resolution = 300;
 
+        % species is an array that contains the indices for each monomer
+        % species to plot. So, if the data set contains 4 species but only
+        % the first and third should be plotted, species = [1,3]. The
+        % default behavior is to plot all species.
+        options.species;
+
         % fontsize specifies the FontSize parameter for the axis on which
         % data are plotted. Default value is 14.
         options.fontsize = 14;
+
+        % title specifies a string to use as the figure title. If title is
+        % provided, all figures will have the same title. Otherwise, title
+        % will be "{} Block Density Profile" where {} is replaced by
+        % mono_label(i) for species i. 
+        options.title = "default (will be replaced)";
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -84,11 +96,23 @@ function individual_profiles(R,x,y,z,dim,options)
         % marks, title, etc. by setting the "visible" property of the axes
         % to "off".
         options.hide_axes = false;
+
+        % If hide_colorbars is set to true, the colorbars will not be shown
+        options.hide_colorbars = false;
         
         % isovalue is an array of isovalues representing the minimum volume
         % fraction to show on plot. One for each species. If not specified,
         % we call get_isovalues.m to calculate them automatically.
         options.isovalue
+
+        % max_comps is a double or an array specifying the maximum
+        % composition to be shown on the colorbar for each species. If it
+        % is a double, the max composition will be set to that value for
+        % all species. If it is an array, the array should contain one
+        % entry for each species, giving the maximum composition for each.
+        % If not provided by user, the max composition used is the max
+        % composition for that species in the entire system.
+        options.max_comps
         
         % mono_label contains labels for each monomer species. If not
         % specified, we use ["A","B","C",...] as the default behavior.
@@ -125,6 +149,11 @@ function individual_profiles(R,x,y,z,dim,options)
         options.alim = [0,1];
         options.blim = [0,1];
         options.clim = [0,1];
+
+        % outer_line_color is the color to use to draw an outer box
+        % around the entire plotted region. This box differs from the unit
+        % cell if the user has specified alim, blim, and/or clim. 
+        options.outer_line_color = "None";
 
         % cb_ticks is the number of ticks on the colorbar, default is 10.
         options.cb_ticks = 10;
@@ -188,7 +217,6 @@ function individual_profiles(R,x,y,z,dim,options)
     if ischar(R) || isstring(R) 
         
         clear x y z; % We will determine x, y, and z from the rgrid file
-        close all; % close other figures
                 
         % Read data from file
         [R,x,y,z,dim,lattype] = read_rgrid(R);
@@ -239,6 +267,12 @@ function individual_profiles(R,x,y,z,dim,options)
     
     % Get other parameters needed for composition profiles, using
     % default values if they are not provided as name-value inputs:
+    if isfield(options,'species')
+        species = options.species;
+    else
+        species = 1:n_mnr;
+    end
+
     if isfield(options,'mono_label')
         mono_label = options.mono_label;
     else
@@ -264,6 +298,18 @@ function individual_profiles(R,x,y,z,dim,options)
         isovalue = options.isovalue;
     else
         isovalue = get_isovalues(R,dim,'plot',false);
+    end
+
+    if isfield(options,'max_comps')
+        max_comps = options.max_comps;
+        if numel(max_comps) == 1
+            max_comps = ones(1,n_mnr) * max_comps;
+        end
+    else
+        max_comps = zeros(1,n_mnr);
+        for in = 1:n_mnr
+            max_comps(in) = max(R(:,:,:,in),[],'all');
+        end
     end
     
     if isscalar(options.n_digits)
@@ -312,11 +358,14 @@ function individual_profiles(R,x,y,z,dim,options)
     hex3 = options.hex3; 
     line_width = options.line_width; 
     line_color = options.line_color;
+    outer_line_color = options.outer_line_color;
+    fig_title = options.title;
     cb_ticks = options.cb_ticks;
     savefile = options.savefile;
     fontsize = options.fontsize;
     light_on = options.light;
     hide_axes = options.hide_axes;
+    hide_colorbars = options.hide_colorbars;
     alims = options.alim;
     blims = options.blim;
     clims = options.clim;
@@ -332,10 +381,14 @@ function individual_profiles(R,x,y,z,dim,options)
     clear options
     
     %% Create the composition profile for each species
-    for in = 1:n_mnr
+    for in = species
         
         figure(); hold on; set(gca,'fontsize',fontsize)
-        title(strcat(mono_label(in),' Block Density Profile'))
+        if fig_title == "default (will be replaced)"
+            title(strcat(mono_label(in),' Block Density Profile'))
+        else
+            title(fig_title)
+        end
 
         % Plot isosurfaces, isocaps, and unit cell outlines
         if (normalVec == -1) || ((lims(normalVec+1,1) >= 0) && ...
@@ -392,21 +445,27 @@ function individual_profiles(R,x,y,z,dim,options)
 
         end
 
+        % Draw box around outside of unit cell
         draw_box(basis,'LineWidth',line_width,'EdgeColor',line_color);
+
+        % Draw outer box around the entire plotted region 
+        lims_diff = [alims(2)-alims(1); ...
+                     blims(2)-blims(1); ...
+                     clims(2)-clims(1)];
+        outer_basis = basis .* lims_diff;
+        lims_1 = [alims(1), blims(1), clims(1)];
+        origin = lims_1 * basis;
+        draw_box(outer_basis,origin,'LineWidth',line_width,...
+                 'EdgeColor',outer_line_color);
         
         % Set colormap
         colormap(map{in})
         
-        % We only need to show the colorbar if the isosurface intersects
-        % with the faces of the unit cell. Thus, we use the data from the
-        % isocaps to determine if we need to plot the colorbars.
-        max_color = max(R(:,:,:,in),[],'all');
-        %max_color = max(fvc.facevertexcdata);
-        if isovalue(in) < max_color 
+        % Create colorbar:
+        if isovalue(in) < max_comps(in) && ~hide_colorbars
             
-            % Create colorbar:
             cb_start = isovalue(in);
-            cb_end = max_color;
+            cb_end = max_comps(in);
 
             cblabel = round(linspace(cb_start,cb_end,cb_ticks),...
                             n_digits(in));
@@ -419,21 +478,7 @@ function individual_profiles(R,x,y,z,dim,options)
                 l_lngth,'Yticklabel',cblabel,'fontsize',fontsize)
 
             title1 = strcat('\phi','_',mono_label(in));
-            title(cbh,title1,'fontsize',fontsize*1.1)
-        
-        % If colorbar is not needed, we opt instead to add a text box
-        % indicating the value of the isovalue we are showing.
-        else
-
-            % Creating the label for the isovalue(in)
-            text_disp = strcat('\phi','_',mono_label(in),'=',...
-                               num2str(round(isovalue(in),n_digits(in)))); 
-
-            % Setting the location for the label
-            text(x(grid(1)+1,1,round(grid(3)/2)), ...
-                 y(grid(1)+1,1,round(grid(3)/2)), ...
-                 z(grid(1)+1,1,round(grid(3)/2)),...
-                 text_disp,'color',map{in}(end,:),'fontsize',fontsize+4)
+            title(cbh,title1,'fontsize',fontsize*1.1);
              
         end
         
@@ -503,53 +548,53 @@ function individual_profiles(R,x,y,z,dim,options)
         end
 
         % If a substrate and/or top wall are included, draw them
-    if substrate || top_wall
-
-        if (basis(1,3) > 1e-8) || (basis(2,3) > 1e-8)
-            error("a and b basis vectors must be in the x-y plane")
+        if substrate || top_wall
+    
+            if (basis(1,3) > 1e-8) || (basis(2,3) > 1e-8)
+                error("a and b basis vectors must be in the x-y plane")
+            end
+            
+            % Setup
+            box_basis = zeros(3,3);
+            origin = [0,0,0];
+            sc = 0.05; % scale factor determining how much wider the substrate
+                       % and top wall are than the actual polymer unit cell
+    
+            xd = alims(2)-alims(1);
+            yd = blims(2)-blims(1);
+            zd = clims(2)-clims(1);
+            box_basis(1,1) = (1+sc) * ((xd * basis(1,1)) + ...
+                             (yd * abs(basis(2,1)) + (zd * abs(basis(3,1)))));
+            box_basis(2,2) = (1+sc) * ((xd * basis(1,2)) + ...
+                             (yd * abs(basis(2,2)) + (zd * abs(basis(3,2)))));
+            if normalVec == -1 % not a thin film system
+                box_basis(3,3) = sc * zd * basis(3,3);
+            else
+                box_basis(3,3) = min(z,[],'all');
+            end
+            
+            origin(1) = min(x,[],'all') - ((sc/2) * xd * basis(1,1));
+            origin(2) = min(y,[],'all') - ((sc/2) * yd * basis(2,2));
+            
+            if substrate
+                % Draw substrate graphic
+                origin(3) = min(z,[],'all')  - box_basis(3,3);
+                draw_box(box_basis,origin,...
+                         "FaceColor",substrate_color,...
+                         "EdgeColor",substrate_line_color,...
+                         "LineWidth",substrate_line_width);
+            end
+    
+            if top_wall
+                % Draw top wall graphic
+                origin(3) = max(z,[],'all');
+                draw_box(box_basis,origin,...
+                         "FaceColor",top_wall_color,...
+                         "EdgeColor",top_wall_line_color,...
+                         "LineWidth",top_wall_line_width);
+            end
+    
         end
-        
-        % Setup
-        box_basis = zeros(3,3);
-        origin = [0,0,0];
-        sc = 0.05; % scale factor determining how much wider the substrate
-                   % and top wall are than the actual polymer unit cell
-
-        xd = alims(2)-alims(1);
-        yd = blims(2)-blims(1);
-        zd = clims(2)-clims(1);
-        box_basis(1,1) = (1+sc) * ((xd * basis(1,1)) + ...
-                         (yd * abs(basis(2,1)) + (zd * abs(basis(3,1)))));
-        box_basis(2,2) = (1+sc) * ((xd * basis(1,2)) + ...
-                         (yd * abs(basis(2,2)) + (zd * abs(basis(3,2)))));
-        if normalVec == -1 % not a thin film system
-            box_basis(3,3) = sc * zd * basis(3,3);
-        else
-            box_basis(3,3) = min(z,[],'all');
-        end
-        
-        origin(1) = min(x,[],'all') - ((sc/2) * xd * basis(1,1));
-        origin(2) = min(y,[],'all') - ((sc/2) * yd * basis(2,2));
-        
-        if substrate
-            % Draw substrate graphic
-            origin(3) = min(z,[],'all')  - box_basis(3,3);
-            draw_box(box_basis,origin,...
-                     "FaceColor",substrate_color,...
-                     "EdgeColor",substrate_line_color,...
-                     "LineWidth",substrate_line_width);
-        end
-
-        if top_wall
-            % Draw top wall graphic
-            origin(3) = max(z,[],'all');
-            draw_box(box_basis,origin,...
-                     "FaceColor",top_wall_color,...
-                     "EdgeColor",top_wall_line_color,...
-                     "LineWidth",top_wall_line_width);
-        end
-
-    end
 
         view(view_angle); % Sets viewing angle
 
@@ -574,11 +619,14 @@ function individual_profiles(R,x,y,z,dim,options)
         ax_pos = get(gca,'Position');
         ax_pos(3) = ax_pos(4) * aspect_ratio;
         set(gca,'Position',ax_pos);
-
-        set(cbh,'Units','Points'); % Fixed units rather than reduced 
-        set(gcf,'Units','Points');
         
-        if isovalue(in) < max_color % If we have a colorbar
+        set(gcf,'Units','Points');
+        fig_pos = get(gcf,'position');
+        
+        % If we have a colorbar
+        if isovalue(in) < max_comps(in) && ~hide_colorbars
+
+            set(cbh,'Units','Points'); % Fixed units rather than reduced 
             
             % Estimate the width of our ticklabels
             [~,ind] = max(strlength(cblabel)); %Find longest ticklabel
@@ -590,27 +638,33 @@ function individual_profiles(R,x,y,z,dim,options)
 
             % Update figure size to fit everything on the figure
             cb_pos = get(cbh,'Position');
-            fig_pos = get(gcf,'position');
+            
             % Make figure wide enough to see colorbar
             fig_pos(3) = (cb_pos(1) + cb_pos(3)) + txt_width + 40;
+
             % Make figure taller to fit cb titles
             fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
-            set(gcf,'position',fig_pos);
+
+            set(cbh,'Location','Manual'); % fix cb position
             
         else
+
+            % Make figure width agree with axis width
+            fig_pos(3) = ax_pos(1) + ax_pos(3) + 40;
             
-            % Make figure a little taller, just for aesthetics
-            fig_pos = get(gcf,'position');
+            % Also make figure a little taller, just for aesthetics
             fig_pos(4) = fig_pos(4) + (fontsize*1.1);
-            set(gcf,'position',fig_pos);
             
         end
+
+        % Set figure size
+        set(gcf,'position',fig_pos);
 
         % Return to default units for all graphics objects
         drawnow % this refreshes all graphics objects (processes callbacks)
         set(gca,'Units','Normalized')
         set(gcf,'Units','Normalized')
-        set(cbh,'Units','Normalized','Location','Manual')
+        set(cbh,'Units','Normalized')
 
         % Add light if desired
         if light_on
@@ -631,15 +685,7 @@ function individual_profiles(R,x,y,z,dim,options)
             if (ext == ".fig") || (ext == ".m")
                 saveas(gcf,save_filename);
             else
-                if ext == ".jpg"
-                    format = "-djpeg";
-                elseif ext == ".tif"
-                    format = "-dtiff";
-                else
-                    format = strcat("-d", extractAfter(ext,1));
-                end
-                res = strcat("-r",num2str(resolution));
-                print(gcf,save_filename,format,res);
+                exportgraphics(gcf,save_filename,"resolution",resolution);
             end
         end
         
