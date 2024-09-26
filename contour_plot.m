@@ -272,7 +272,7 @@ function contour_plot(R,contourvecs,basis,options)
     start_coord = startloc .* grid + [1 1 1];
     if ~isequal(round(start_coord,8),round(start_coord,0))
         disp('Starting coordinates:')
-        disp(start_coord)
+        fprintf('%25.20f%25.20f%25.20f',start_coord)
         error('Starting coordinates are not on a gridpoint')
     else
         start_coord = round(start_coord,0);

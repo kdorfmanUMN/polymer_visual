@@ -557,20 +557,25 @@ function individual_profiles(R,x,y,z,dim,options)
             % Setup
             box_basis = zeros(3,3);
             origin = [0,0,0];
-            sc = 0.05; % scale factor determining how much wider the substrate
-                       % and top wall are than the actual polymer unit cell
+            sc = 0.05; % scale factor determining how much wider the 
+                       % substrate and top wall are than the actual 
+                       % polymer unit cell
     
             xd = alims(2)-alims(1);
             yd = blims(2)-blims(1);
             zd = clims(2)-clims(1);
-            box_basis(1,1) = (1+sc) * ((xd * basis(1,1)) + ...
-                             (yd * abs(basis(2,1)) + (zd * abs(basis(3,1)))));
-            box_basis(2,2) = (1+sc) * ((xd * basis(1,2)) + ...
-                             (yd * abs(basis(2,2)) + (zd * abs(basis(3,2)))));
+
+            box_basis(1:2,:) = (1+sc) * basis(1:2,:);
+            box_basis(1,:) = box_basis(1,:) * xd;
+            box_basis(2,:) = box_basis(2,:) * yd;
+            
             if normalVec == -1 % not a thin film system
                 box_basis(3,3) = sc * zd * basis(3,3);
-            else
-                box_basis(3,3) = min(z,[],'all');
+            else % thin film
+                box_basis(3,3) = min(z,[],'all') + 0.02;
+                % the extra 0.02 allows the substrate/top wall to extend
+                % just past the SCFT unit cell, so that you don't see the
+                % outer box of the unit cell through the wall
             end
             
             origin(1) = min(x,[],'all') - ((sc/2) * xd * basis(1,1));
@@ -578,7 +583,11 @@ function individual_profiles(R,x,y,z,dim,options)
             
             if substrate
                 % Draw substrate graphic
-                origin(3) = min(z,[],'all')  - box_basis(3,3);
+                origin(3) = min(z,[],'all')  - box_basis(3,3) - 0.005;
+                % the gap of size 0.005 between the substrate and the film
+                % is not visible in the graphic, but prevents the substrate
+                % from being coplanar with the bottom of the unit cell,
+                % which can cause undesirable visual effects
                 draw_box(box_basis,origin,...
                          "FaceColor",substrate_color,...
                          "EdgeColor",substrate_line_color,...
@@ -587,7 +596,9 @@ function individual_profiles(R,x,y,z,dim,options)
     
             if top_wall
                 % Draw top wall graphic
-                origin(3) = max(z,[],'all');
+                origin(1) = origin(1) + basis(3,1);
+                origin(2) = origin(2) + basis(3,2);
+                origin(3) = max(z,[],'all') + 0.005;
                 draw_box(box_basis,origin,...
                          "FaceColor",top_wall_color,...
                          "EdgeColor",top_wall_line_color,...
