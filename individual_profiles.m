@@ -664,7 +664,9 @@ function individual_profiles(R,x,y,z,dim,options)
         drawnow % this refreshes all graphics objects (processes callbacks)
         set(gca,'Units','Normalized')
         set(gcf,'Units','Normalized')
-        set(cbh,'Units','Normalized')
+        if isovalue(in) < max_comps(in) && ~hide_colorbars
+            set(cbh,'Units','Normalized')
+        end
 
         % Add light if desired
         if light_on
