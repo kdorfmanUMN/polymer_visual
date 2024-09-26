@@ -1,5 +1,0 @@
-- Fix voronoi
-- Learn how isovalue calculation works and write comments to explain it
-- Add a "substrate" option
-- Add "outer box" option (and make sure axes lims match outer box)
-
