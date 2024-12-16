@@ -15,7 +15,29 @@
 % It further returns lattype, a string representing the crystal system of
 % the lattice (e.g., "orthorhombic").
 
-function [R,x,y,z,dim,lattype] = read_rgrid(filename)
+% The r-grid file of an FTS trajectory will, in general, contain multiple
+% fields, labeled by an index i in the field file that begins at 0 and
+% increases with each consecutive field. If an FTS trajectory is provided
+% as the input file to this function, the field that is read will, by
+% default, be the first field in the file, with i = 0. An optional input
+% parameter fieldId may be provided, in which case the field with index
+% fieldId will be read instead. 
+
+function [R, x, y, z, dim, lattype] = read_rgrid(filename, fieldId)
+
+    arguments
+
+        % String that represents the path to the rgrid file containing the 
+        % data that will be read
+        filename;
+
+        % Optional index that indicates which field to read from an FTS
+        % trajectory. If the input file is not an FTS trajectory, this
+        % value is not used. Default is 0 (reads the first field in the
+        % file).
+        fieldId = 0;
+
+    end
     
     % Ensure that the code below can access our utilities
     [filepath,~,~] = fileparts(mfilename('fullpath'));
@@ -26,52 +48,77 @@ function [R,x,y,z,dim,lattype] = read_rgrid(filename)
     C = textscan(tmp,'%s','delimiter', '\n');
     C=C{1};
     fclose(tmp); clear tmp;
-
-    ic = 0;
-    start_row = 1000;
-    % Reading the Preamble of the File
-    
-    while ic <= start_row
-        ic = ic +1;
         
-        % this section reads in preamble.
-        
-        if strcmp(strrep(char(C(ic)),' ', ''),'dim')==1
-            % Reads the grid dimensions
-            dim = str2double(C{ic+1}); 
-        elseif strcmp(strrep(char(C(ic)),' ', ''),'crystal_system')==1
-            % Reads the system type
-            lattype = strrep(C(ic+1), '''', ''); 
-        elseif strcmp(strrep(char(C(ic)),' ', ''),'cell_param')==1
-            % Reads the cell parameters
-            param = sscanf(C{ic+1},'%f')';
-        elseif strcmp(strrep(char(C(ic)),' ', ''),'N_monomer')==1
-            % Reads the number of monomers
-            n_mnr = str2double(C{ic+1}); 
-        elseif strcmp(strrep(char(C(ic)),' ', ''),'ngrid')==1 || ...
-               strcmp(strrep(char(C(ic)),' ', ''),'mesh')==1
-            % Reads the grid size
-            grid = sscanf(C{ic+1},'%f')'; 
-            start_row = ic+2; % the row where volume fractions start
-        end
-
+    % Check that field file header is in the expected format
+    if (~strcmp(strip(C{2}), 'dim') || ...
+        ~strcmp(strip(C{4}), 'crystal_system') || ...
+        ~strcmp(strip(C{8}), 'cell_param'))
+        error("Field file header cannot be parsed.");
     end
-    
-    end_info = start_row - 1; % the row where preamble ends
-    
+
+    % Read necessary data from field file header
+    dim = str2double(C{3}); 
+    lattype = strrep(C(5), '''', ''); 
+    param = sscanf(C{9},'%f')';
+
+    % Find N_monomer
+    sym = true;
+    if strcmp(strip(C{10}), 'N_monomer') % no symmetry
+        n_mnr = str2double(C{11}); 
+        sym = false; 
+    elseif strcmp(strip(C{12}), 'N_monomer') % with symmetry
+        n_mnr = str2double(C{13}); 
+    else
+        error("N_monomer not found.")
+    end
+
+    % Determine if this is an FTS simulation field file
+    fts = false;
+    if strcmp(C{13}, 'i = 0')
+        fts = true;
+    end
+
+    j = 13;
+    if fts
+        % If this is an FTS simulation, find field with index fieldId
+        fieldIdHeader = sprintf('i = %d',fieldId);
+        lenC = length(C);
+        while ~strcmp(C{j},fieldIdHeader)
+            j = j + 1;
+            if j > lenC
+                error("Field with index %d not found.",fieldId);
+            end
+        end
+        j = j + 1;
+    elseif sym
+        j = 14;
+    else 
+        j = 12;
+    end
+
+    if strcmp(strrep(char(C(j)),' ', ''),'ngrid') || ...
+       strcmp(strrep(char(C(j)),' ', ''),'mesh')
+        % Reads the grid size
+        grid = sscanf(C{j+1},'%f')'; 
+        start_row = j+2; % the row where volume fractions start
+    else
+        error("Mesh dimensions not found");
+    end
+        
     % Extend 1D and 2D grids to a 3D grid
-    if(length(grid)==1)
+    if(isscalar(grid)) % grid is only one element
         grid(2) = 3; %grid(1);
         grid(3) = 3; %grid(1);
-    elseif(length(grid)==2)
+    elseif(length(grid) == 2)
         grid(3) = 3; %grid(1);
     end
     
     % Read grid points from the file into a linear array
-    A = zeros(length(C) - end_info,n_mnr);
+    n_pts = prod(grid);
+    A = zeros(n_pts,n_mnr);
     
-    for i =start_row:length(C)
-        A(i - end_info,:) = sscanf(C{i},'%f')';
+    for i =1:n_pts
+        A(i,:) = sscanf(C{i+start_row-1},'%f')';
     end
     
     % Get x,y,z grid points and unit cell parameters

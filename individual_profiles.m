@@ -71,6 +71,12 @@ function individual_profiles(R,x,y,z,dim,options)
         % will be "{} Block Density Profile" where {} is replaced by
         % mono_label(i) for species i. 
         options.title = "default (will be replaced)";
+
+        % fieldId is an ptional index to specify which field to read from 
+        % an FTS simulation output file. Default = 0. If the input file is 
+        % not an FTS simulation output file, or if R, x, y, and z are 
+        % provided as input data arrays, this parameter does nothing.
+        options.fieldId = 0;
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -219,7 +225,7 @@ function individual_profiles(R,x,y,z,dim,options)
         clear x y z; % We will determine x, y, and z from the rgrid file
                 
         % Read data from file
-        [R,x,y,z,dim,lattype] = read_rgrid(R);
+        [R,x,y,z,dim,lattype] = read_rgrid(R,options.fieldId);
         
         % If hex3 is true, make sure system is actually hexagonal
         if options.hex3 && strcmp(lattype,'hexagonal') == 0

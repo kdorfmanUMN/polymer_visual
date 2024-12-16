@@ -60,6 +60,12 @@ function contour_plot(R,contourvecs,basis,options)
         % title specifies a string to use as the figure title. Default is
         % no title ("")
         options.title = "";
+
+        % fieldId is an optional index to specify which field to read from 
+        % an FTS simulation output file. Default = 0. If the input file is 
+        % not an FTS simulation output file, or if R, x, y, and z are 
+        % provided as input data arrays, this parameter does nothing.
+        options.fieldId = 0;
         
         % mono_label contains labels for each monomer species. If not
         % specified, we use ["A","B","C",...] as the default behavior.
@@ -159,7 +165,7 @@ function contour_plot(R,contourvecs,basis,options)
     if ischar(R) || isstring(R) 
         
         % Read data from file
-        [R,x,y,z,dim] = read_rgrid(R);
+        [R,x,y,z,dim] = read_rgrid(R,options.fieldId);
         
         % Get lattice basis vectors
         basis = [x(end,1,1),y(end,1,1),z(end,1,1);

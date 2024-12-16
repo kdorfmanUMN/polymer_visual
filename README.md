@@ -155,6 +155,7 @@ The function `individual_profiles` will draw a 3D density profile for each speci
 |`species`| An array containing the indices of the species for which to make a figure. For example, if the array is [1,3], a composition profile will be made for species 1 and 3, but not any other species. If not included, a figure is made for every species.|
 |`fontsize`| Specifies the FontSize parameter for the axis on which data are plotted. Default value is 14.|
 |`title`| Specifies the title to place at the top of the plot. Default is "{} Block Density Profile", where {} is replaced by mono_label(i) for species i.|
+|`fieldId`|Optional index to specify which field to read from an FTS simulation output file. Default = 0. If the input file is not an FTS simulation output file, this parameter does nothing.|
 |`hex3`| A boolean indicating whether to plot 3 unit cells for a hexagonal system (in the shape of a hexagon) rather than 1. Should only be true if the lattice system is hexagonal. Default value is false.|
 |`light`| A boolean indicating whether to insert a "light" object into the plot. This adds shadows that can make 3D structure clearer (see [Fig. 2](#overview-and-examples)), but invalidates the accuracy of the colorbar. Default value is false.|
 |`view`| A 1, 2, or 3-element vector that specifies the viewing angle of the figure(s). If this is included, it is stored in options.view and we call view(options.view) to set the viewing angle, so options.view must be something that complies with the view() function. If the input is 2 or 3 (scalar values), the view will be the default 2D or 3D view, respectively. If the input is a 2-element vector, the two elements correspond to the azimuth and elevation angles, respectively. If view is a 3-element vector, the values represent a vector that points from the origin to the viewer. Default value is 3.|
@@ -238,6 +239,7 @@ The function `line_profile` will plot the compositions of each species along any
 |`resolution`| A number that specifies the resolution of the figure that is saved (if savefile is specified), in dots per inch (dpi). Default value is 300. If set to 0, file is saved at screen resolution.|
 |`fontsize`| Specifies the FontSize parameter for the axis on which data are plotted. Default value is 14.|
 |`title`| Specifies the title to place at the top of the plot. Default title is "Density Profile Along [a b c]" if the line profile starts at the origin, or "Density Profile from [a b c] to [d e f]" if the line profile starts away from the origin (where [a b c d e f] are all replaced by the appropriate reduced coordinates).|
+|`fieldId`|Optional index to specify which field to read from an FTS simulation output file. Default = 0. If the input file is not an FTS simulation output file, this parameter does nothing.|
 |`mono_label`| An array containing string labels for each monomer species. If not specified, we use ["A","B","C",...] as the default behavior.|
 |`colors`| A matrix specifying the color of each line. colors[j,:] is an RGB triplet that is the color for the line profile of species j. The default values correspond to the default colors given in utilities/get_colormaps.|
 |`film_params`| If your SCFT result is a thin film, you should include film\_params as an input to apply a thin film correction. See the [Thin Film Correction](#thin-film-correction) section below for a description of this correction. **NOTE: if you include film\_params, you may also need to include coords; see below.** <br> <br> film\_params is an array with 4 entries. The first 3 entries correspond to the 3 required parameters in pscfpp that are needed to define a Wall object: normalVec, interfaceThickness, and wallThickness. See [pscfpp](https://github.com/dmorse/pscfpp) documentation for details about what each of these three parameters means. The fourth entry is a boolean (i.e. 0 for false, 1 for true) that indicates whether or not to rotate the figure to make the z axis orthogonal to the wall. If this film_params input is included, the code will apply a correction to the plot to make the figure look good as a thin film. If it is not included, it is assumed that the data being plotted are not under a thin film constraint, or that any correction has already been applied.|
@@ -272,6 +274,7 @@ The function `contour_plot` plots a 2D density profile of all species at points 
 |`resolution`| A number that specifies the resolution of the figure that is saved (if savefile is specified), in dots per inch (dpi). Default value is 300. If set to 0, file is saved at screen resolution.|
 |`fontsize`| Specifies the FontSize parameter for the axis on which data are plotted. Default value is 14.|
 |`title`| Specifies the title to place at the top of the plot. Default is an empty string.|
+|`fieldId`|Optional index to specify which field to read from an FTS simulation output file. Default = 0. If the input file is not an FTS simulation output file, this parameter does nothing.|
 |`mono_label`| An array containing string labels for each monomer species. If not specified, we use ["A","B","C",...] as the default behavior.|
 |`map`| A cell array containing a colormap for each species. map{j} is the colormap for species j. If unspecified, we use the default colormaps generated by utilities/get_colormaps.m.|
 |`isovalue`| An array of isovalues representing the minimum volume fraction to show on plot. Each element in the isovalue array corresponds to one species, such that isovalue(j) is the isovalue for the species described by the data R(:,:,:,j). If not specified, we call utilities/get_isovalues.m to calculate them automatically.|
@@ -318,6 +321,7 @@ The function `scattering_plot` plots the predicted scattering peak intensities f
 |`hkls`| An array in which each row contains the hkl indices of one scattering peak to include on the plot (if it is an actual peak). If hkl is not provided, the code below generates this array to include all values of h, k, and l that are 5 or lower. Peaks not included in this array will not be plotted.|
 |`fontsize`| Specifies the FontSize parameter for the axis on which data are plotted. Default value is 14.|
 |`title`| Specifies the title to place at the top of the plot. Default is an empty string.|
+|`fieldId`|Optional index to specify which field to read from an FTS simulation output file. Default = 0. If the input file is not an FTS simulation output file, this parameter does nothing.|
 |`theta_plot`| A boolean, where we plot our scattering peaks as a function of 2θ if it is true. Otherwise, if false, we plot the data as a function of q (the default).|
 |`units`| A string that represents the units of length used in defining x, y, and z. This will be used in the x-axis label of the plot, if provided. So, if units = 'Å', the x-axis label will read 'q [Å^{-1}]'. If not provided, the axis label will just read 'q'.|
 |`no_labels`| A boolean which, if true, will suppress the hkl indices from being shown on the plot. Default is false (show all hkl indices for each peak).|
@@ -350,6 +354,7 @@ The function `read_rgrid` allows users to merely read the data from the r-grid f
 |Input|Description|
 |---|---|
 |`filename`|Path to r-grid file containing the data to be plotted. Can be either an absolute or relative path.|
+|`fieldId`|Optional index to specify which field to read from an FTS simulation output file. Default = 0. If the input file is not an FTS simulation output file, this parameter does nothing.|
 
 ### Output Arguments:
 

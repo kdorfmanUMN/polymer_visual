@@ -80,6 +80,12 @@ function scattering_plot(R,x,y,z,options)
         % title specifies a string to use as the figure title. Default is
         % no title ("")
         options.title = "";
+
+        % fieldId is an optional index to specify which field to read from 
+        % an FTS simulation output file. Default = 0. If the input file is 
+        % not an FTS simulation output file, or if R, x, y, and z are 
+        % provided as input data arrays, this parameter does nothing.
+        options.fieldId = 0;
         
         % theta_plot is a boolean, where we plot our scattering peaks as a
         % function of 2θ if it is true. Otherwise, we plot it as a function
@@ -124,7 +130,7 @@ function scattering_plot(R,x,y,z,options)
         clear x y z; % We will determine x, y, and z from the rgrid file
                 
         % Read data from file
-        [R,x,y,z] = read_rgrid(R);
+        [R,x,y,z] = read_rgrid(R,options.fieldId);
         
         % Get lattice basis vectors
         basis = [x(end,1,1),y(end,1,1),z(end,1,1);

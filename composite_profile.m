@@ -71,6 +71,12 @@ function composite_profile(R,x,y,z,dim,options)
         % title specifies a string to use as the figure title. Default is
         % "Composite Density Profile"
         options.title = "Composite Density Profile";
+
+        % fieldId is an optional index to specify which field to read from 
+        % an FTS simulation output file. Default = 0. If the input file is 
+        % not an FTS simulation output file, or if R, x, y, and z are 
+        % provided as input data arrays, this parameter does nothing.
+        options.fieldId = 0;
         
         % hex3 is a boolean indicating whether to plot 3 unit cells for a
         % hexagonal system rather than 1. 
@@ -227,7 +233,7 @@ function composite_profile(R,x,y,z,dim,options)
         clear x y z; % We will determine x, y, and z from the rgrid file
                 
         % Read data from file
-        [R,x,y,z,dim,lattype] = read_rgrid(R);
+        [R,x,y,z,dim,lattype] = read_rgrid(R,options.fieldId);
         
         % If hex3 is true, make sure system is actually hexagonal
         if options.hex3 && strcmp(lattype,'hexagonal') == 0
@@ -709,8 +715,10 @@ function composite_profile(R,x,y,z,dim,options)
         % Fix the axes to reflect the correct aspect ratio
         ax_pos = get(ax_main,"Position"); % Get current axes position
         ax_pos(3) = ax_pos(4) * aspect_ratio; % Fix aspect ratio
-        if ax_pos(3) < t_size(3)
-            ax_pos(3) = t_size(3);
+        if fig_title ~= ""
+            if ax_pos(3) < t_size(3)
+                ax_pos(3) = t_size(3);
+            end
         end
         
         set(ax_main,"Position",ax_pos);   % Apply adjusted axes position

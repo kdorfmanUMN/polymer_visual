@@ -65,6 +65,12 @@ function line_profile(R,direc,startloc,options)
         % profile starts away from the origin (where [a b c d e f] are all
         % replaced by the appropriate reduced coordinates). 
         options.title = "default (will be replaced)";
+
+        % fieldId is an optional index to specify which field to read from 
+        % an FTS simulation output file. Default = 0. If the input file is 
+        % not an FTS simulation output file, or if R, x, y, and z are 
+        % provided as input data arrays, this parameter does nothing.
+        options.fieldId = 0;
         
         % mono_label contains labels for each monomer species. If not
         % specified, we use ["A","B","C",...] as the default behavior.
@@ -120,8 +126,8 @@ function line_profile(R,direc,startloc,options)
         
         % Read data from file
         options.coords = cell(1,3);
-        [R,options.coords{1},options.coords{2},...
-                                options.coords{3}] = read_rgrid(R);
+        [R,options.coords{1},options.coords{2},options.coords{3}] = ...
+            read_rgrid(R,options.fieldId);
     end
     
     % define dim, grid, and n_mnr
@@ -138,8 +144,8 @@ function line_profile(R,direc,startloc,options)
     while length(startloc) < 3; startloc(end+1) = 0; end %#ok<AGROW> 
 
     % Apply thin film correction to data if desired
-    startloc_og = startloc; % input startloc, before any corrections
-    direc_og = direc; % input direc, before any corrections
+    startloc_in = startloc; % input startloc, before any corrections
+    direc_in = direc; % input direc, before any corrections
     if isfield(options,'film_params') && ~isempty(options.film_params)
 
         if ~isfield(options,"coords") % Make sure we have coords
@@ -277,13 +283,27 @@ function line_profile(R,direc,startloc,options)
 
     end
     
+    is_int_direc = (max(direc_in-round(direc_in)) < 1e-5);
+    is_int_start = (max(startloc_in-round(startloc_in)) < 1e-5);
     if options.title ~= "default (will be replaced)" % if title is provided
         title1 = options.title;
     elseif isequal(startloc,[0 0 0])
-        title1 = sprintf('Density Profile Along [%.4f %.4f %.4f]',direc_og);
+        if is_int_direc
+            title1 = sprintf('Density Profile Along [%d %d %d]',direc_in);
+        else
+            title1 = sprintf('Density Profile Along [%.4f %.4f %.4f]',...
+                             direc_in);
+        end
     else
-        title1 = sprintf('Density Profile from [%.4f %.4f %.4f] to [%.4f %.4f %.4f]',...
-                         startloc_og,startloc_og+direc_og);
+        if is_int_direc && is_int_start
+            title_str = 'Density Profile from [%d %d %d] to [%d %d %d]';
+        elseif is_int_start
+            title_str = 'Density Profile from [%d %d %d] to [%.4f %.4f %.4f]';
+        else
+            title_str = 'Density Profile from [%.4f %.4f %.4f] to [%.4f %.4f %.4f]';
+        end
+        title1 = sprintf(title_str, startloc_in, startloc_in+direc_in);
+            
     end
     title(title1)
     xlabel('r/r_{max}')
