@@ -104,21 +104,27 @@ function [R, x, y, z, dim, lattype] = read_rgrid(filename, fieldId)
     else
         error("Mesh dimensions not found");
     end
-        
+    
     % Extend 1D and 2D grids to a 3D grid
+    n_pts = prod(grid);
+    multiplier = 1;
     if(isscalar(grid)) % grid is only one element
         grid(2) = 3; %grid(1);
         grid(3) = 3; %grid(1);
+        multiplier = 9;
     elseif(length(grid) == 2)
         grid(3) = 3; %grid(1);
+        multiplier = 3;
     end
     
     % Read grid points from the file into a linear array
-    n_pts = prod(grid);
-    A = zeros(n_pts,n_mnr);
-    
-    for i =1:n_pts
-        A(i,:) = sscanf(C{i+start_row-1},'%f')';
+    A = zeros(n_pts*multiplier,n_mnr);
+    counter = 1;
+    for j = 1:multiplier
+        for i = 1:n_pts
+            A(counter,:) = sscanf(C{i+start_row-1},'%f')';
+            counter = counter + 1;
+        end
     end
     
     % Get x,y,z grid points and unit cell parameters
