@@ -526,6 +526,9 @@ function contour_plot(R,contourvecs,basis,options)
         fig_pos(4) = fig_pos(4) + (fontsize*1.1); 
     end
     set(gcf,'position',fig_pos);
+
+    drawnow % this refreshes all graphics objects (processes callbacks).
+            % The colorbars end up too big if we don't call this here
     
     % Save figure if a filename is provided
     if savefile ~= ""
@@ -536,6 +539,13 @@ function contour_plot(R,contourvecs,basis,options)
             exportgraphics(gcf,savefile,"resolution",resolution);
         end
     end
+
+    % Prep figure for interactive use
+    for in = 1:n_mnr
+        set(ax(in),'Units','Normalized')
+        set(cb(in),'Units','Normalized')
+    end
+    set(gcf,'Units','Normalized')
     
     hold off
 
